@@ -30,11 +30,7 @@ namespace EZAvatar
 
         }
         public GameObject avatar;
-        public Material[] material = new Material[0];
         private bool MaterialFoldout;
-        public List<Material> materials = new List<Material>();
-        public Material matslot;
-        public List<Material> matslots = new List<Material>();
         private static Vector2 scrollview;
         private List<string> categoryFields = new List<string>();
         private List<bool> categoryFoldouts = new List<bool>();
@@ -158,18 +154,8 @@ namespace EZAvatar
                 }
                 if (GUILayout.Button("test"))
                     MakeAnimationClips(categories, Type.Material);
-                if (GUILayout.Button("test2"))
-                {
-                    foreach(var category in categories)
-                    {
-                        for(int i = 0; i < category.materials.Count(); i++)
-                        {
-                            Debug.Log(category.materials.ElementAt(i).name);
-                        }
-                    }
-                }
+ 
                 DrawMaterialUI();
-
             }
             EditorGUILayout.EndScrollView();
         }
