@@ -38,34 +38,30 @@ namespace EZAvatar
         private static Vector2 scrollview;
         private List<string> categoryFields = new List<string>();
         private List<bool> categoryFoldouts = new List<bool>();
-        Dictionary<Category, List<Material>> categories = new Dictionary<Category, List<Material>>();
+        List<Category> categories = new List<Category>();
         private string enterText;
         private int count;
         private string debug;
 
         //Creates a new entry in our dictionary which stores the category name, the reference to the foldout bool, and the list of materials.
-        public void AddCategory(Dictionary<Category, List<Material>> dict, string categoryName, bool foldoutBool, List<Material> dictMatList)
+        public void AddCategory(List<Category> dict, string categoryName, bool foldoutBool)
         {
             Category category = new Category();
             category.name = categoryName;
             category.foldout = foldoutBool;
-            category.slots = dictMatList.Count;
-            dict.Add(category, dictMatList);
+            category.slots = 0;
+            dict.Add(category);
         }
 
-        public bool DoesKeyExist(Dictionary<Category, List<Material>> dict, string categoryName, bool foldoutBool)
+        public bool DoesCategoryExist(List<Category> categories, string categoryName)
         {
             bool result = new bool();
-            foreach (var kvp in dict)
+            foreach (var category in this.categories)
             {
-                if (kvp.Key.name.Equals(categoryName) && kvp.Key.foldout.Equals(foldoutBool))
-                {
+                if (category.name.Equals(categoryName))
                     result = true;
-                }
-                else if (!kvp.Key.name.Equals(categoryName) && !kvp.Key.foldout.Equals(foldoutBool))
-                {
+                else if (!category.name.Equals(categoryName))
                     result = false;
-                }
             }
             return result;
         }
@@ -83,24 +79,16 @@ namespace EZAvatar
                 if (categoryFoldouts[i])
                 {
                     int hash = categoryFoldouts[i].GetHashCode();
-                    Array.Resize(ref categories.ElementAt(i).Key.objectRef, categories.Count);
-                    categories.ElementAt(i).Key.objectRef[i] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", categories.ElementAt(i).Key.objectRef[i], typeof(GameObject), true);
-                    if (hash == categories.Keys.ElementAt(i).foldout.GetHashCode())
+                    Array.Resize(ref categories.ElementAt(i).objectRef, categories.Count);
+                    categories.ElementAt(i).objectRef[i] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", categories.ElementAt(i).objectRef[i], typeof(GameObject), true);
+                    if (hash == categories.ElementAt(i).foldout.GetHashCode())
                     {
                         //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
-                        for (int j = 0; j < categories.Keys.ElementAt(i).slots; j++)
+                        for (int j = 0; j < categories.ElementAt(i).slots; j++)
                         {
-                            Array.Resize(ref categories.Keys.ElementAt(i).materials, categories.Keys.ElementAt(i).slots);
+                            Array.Resize(ref categories.ElementAt(i).materials, categories.ElementAt(i).slots);
                             EditorGUILayout.BeginVertical();
-                            categories.Keys.ElementAt(i).materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", categories.Keys.ElementAt(i).materials[j], typeof(Material), false);
-                            //Only adds the material to the list if the material is not already in the list.
-                            if (!categories.Values.ElementAt(i).Contains(categories.Keys.ElementAt(i).materials[j]) && categories.Keys.ElementAt(i).materials[j] != null) 
-                            {
-                                categories.Values.ElementAt(i).Add(categories.Keys.ElementAt(i).materials[j]);
-                                if (categories.Keys.ElementAt(i).materials[j] != categories.Values.ElementAt(i)[j]) {
-                                    categories.Values.ElementAt(i)[j] = categories.Keys.ElementAt(i).materials[j];
-                                }
-                            }
+                            categories.ElementAt(i).materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", categories.ElementAt(i).materials[j], typeof(Material), false);
                             EditorGUILayout.EndVertical();
                         }
                     }
@@ -110,17 +98,15 @@ namespace EZAvatar
                     //Adds a button that increments an int, which is used to create new material fields
                     if (GUILayout.Button("+", GUILayout.Width(35)))
                     {
-                        categories.ElementAt(i).Key.slots += 1;
+                        categories.ElementAt(i).slots += 1;
                         lastRect = GUILayoutUtility.GetLastRect();
                     }
                     
-                    if (categories.ElementAt(i).Key.slots > 0)
+                    if (categories.ElementAt(i).slots > 0)
                     {
                         if (GUILayout.Button("-", GUILayout.Width(35)))
                         {
-                            categories.ElementAt(i).Key.slots -= 1;
-                            if (categories.Values.ElementAt(i).Count > 0)
-                                categories.Values.ElementAt(i).RemoveAt(categories.ElementAt(i).Key.slots + 1);
+                            categories.ElementAt(i).slots -= 1;
                         }
                     }
                     EditorGUILayout.EndHorizontal();
@@ -149,17 +135,17 @@ namespace EZAvatar
                     {
                         categoryFoldouts.Add(true);
                         categoryFields.Add(enterText);
-                        AddCategory(categories, enterText, categoryFoldouts.Last(), newMatList);
+                        AddCategory(categories, enterText, categoryFoldouts.Last());
                     }
                     //Prevents categories with the same names being made
                     if (count > 0)
                     {
-                        var exists = DoesKeyExist(categories, enterText, categoryFoldouts.ElementAt(categoryFoldouts.Count - 1));
+                        var exists = DoesCategoryExist(categories, enterText);
                         if (!exists)
                         {
                             categoryFoldouts.Add(true);
                             categoryFields.Add(enterText);
-                            AddCategory(categories, enterText, categoryFoldouts.Last(), newMatList);
+                            AddCategory(categories, enterText, categoryFoldouts.Last());
                         }
                         else
                         {
@@ -172,6 +158,16 @@ namespace EZAvatar
                 }
                 if (GUILayout.Button("test"))
                     MakeAnimationClips(categories, Type.Material);
+                if (GUILayout.Button("test2"))
+                {
+                    foreach(var category in categories)
+                    {
+                        for(int i = 0; i < category.materials.Count(); i++)
+                        {
+                            Debug.Log(category.materials.ElementAt(i).name);
+                        }
+                    }
+                }
                 DrawMaterialUI();
 
             }
@@ -217,9 +213,10 @@ namespace EZAvatar
                 AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}/{clip.name}.anim");
                 Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}!");
             }
-            else
+            else {
                 debug = "Avatar gameobject was not found.";
-            Debug.Log(debug);
+                Debug.Log(debug);
+            }
         }
 
         public SkinnedMeshRenderer FindRenderer(GameObject gameObj)
@@ -233,7 +230,7 @@ namespace EZAvatar
             return null;
         }
 
-        public void MakeAnimationClips(Dictionary<Category, List<Material>> categories, Type type)
+        public void MakeAnimationClips(List<Category> categories, Type type)
         {
             var clips = new List<Material>();
             if (type == Type.GameObject)
@@ -245,18 +242,18 @@ namespace EZAvatar
                 foreach (var category in categories)
                 {
                     var count = 0;
-                    var layerName = category.Key.name;
-                    var materials = category.Value;
-                    var gameObj = category.Key.objectRef[count];
+                    var layerName = category.name;
+                    var materials = category.materials;
+                    var gameObj = category.objectRef[count];
 
-                    if (materials.Count < 2)
+                    if (materials.Count() < 2)
                     {
                         debug = "Must provide a minimum of two materials! Base material and the swap materials.";
                         Debug.Log(debug);
                         return;
                     }
 
-                    if (materials.Count >= 2)
+                    if (materials.Count() >= 2)
                     {
                         var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
                         if (render == null)
@@ -272,7 +269,7 @@ namespace EZAvatar
                         for (int i = 0; i < matslotref.FindProperty("m_Materials.Array").arraySize; i++)
                         {
                             var material = render.sharedMaterials[i];
-                            for (int j = 0; j < materials.Count; j++)
+                            for (int j = 0; j < materials.Count(); j++)
                             {
                                 SerializedObject mat = new SerializedObject(materials[j]);
                                 if (mat.FindProperty("m_Name").stringValue == material.name)
@@ -291,7 +288,7 @@ namespace EZAvatar
                         binding.path = path;
                         binding.propertyName = $"m_Materials.Array.data[{index}]";
 
-                        for (int i = 0; i < materials.Count; i++)
+                        for (int i = 0; i < materials.Count(); i++)
                         {
                             //We create a new animationclip for each material, with the name the same as the material name.
                             var clip = new AnimationClip();
