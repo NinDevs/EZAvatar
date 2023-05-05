@@ -1,4 +1,3 @@
-﻿
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -8,864 +7,280 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class EZAvatarSetup : EditorWindow
+namespace EZAvatar
 {
-    [MenuItem("Nin/Utilities/3.0 Helper")]
-    static void Init()
+    public class Category
     {
-        //Creating a new editor window, and then shows it
-        EZAvatarSetup window = (EZAvatarSetup)EditorWindow.GetWindow(typeof(EZAvatarSetup));
-        window.Show();
-
+        public string name;
+        public bool foldout;
+        public int slots { get; internal set; }
+        public Material[] materials;
+        public GameObject[] objectRef;
     }
 
-    public void OnGUI()
+    public class EzAvatar : EditorWindow
     {
-        //Sets up a gameobject slot within the editor window.
-        avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
-        //Creates a foldout (dropdown) and then buttons under it.
-        TogglesMenu = EditorGUILayout.Foldout(TogglesMenu, "Setup Toggles", true);
-        if (TogglesMenu)
+        [MenuItem("Nin/Utilities/EzAvatar")]
+
+        static void Init()
         {
-            if (GUILayout.Button("Setup Accessory (Bool) Toggles"))
-            {
-                FindAcessoryToggles();
-            }
-
-            if (GUILayout.Button("Setup Material (Int) Toggles"))
-            {
-                FindMaterialToggles();
-
-            }
-
-            if (GUILayout.Button("Setup Radial Puppets (Floats)"))
-            {
-                FindFloats();
-            }
-        }
-
-        SetupMenus = EditorGUILayout.Foldout(SetupMenus, "Setup Menus", true);
-        if (SetupMenus)
-        {
-            if (GUILayout.Button("Setup Accessory Menus"))
-            {
-                SetupAccessoryToggleMenus();
-            }
-
-            if (GUILayout.Button("Setup Material Menus"))
-            {
-                SetupMaterialMenus();
-            }
-
-            if (GUILayout.Button("Setup Radial Puppets"))
-            {
-                SetupFloatMenus();
-            }
-        }
-
-        howToUse = EditorGUILayout.Foldout(howToUse, "How to Use", true); 
-        if (howToUse)
-        {
-            GUIStyle helpStyle = new GUIStyle(GUI.skin.box);
-            helpStyle.wordWrap = true; 
-            helpStyle.alignment = TextAnchor.UpperLeft;
-            Color c = Color.white;
-            c.a = 0.75f;
-            helpStyle.normal.textColor = c;
-            GUILayout.Label(
-            "Requirements: FX Layer (with correct naming of animations), Parameters Expressions Menu."
-            , helpStyle
-            , GUILayout.ExpandWidth(true));
-            GUILayout.Label(
-            "For every bool toggle animation clip you create, make sure the FX Layer (Animator Controller) of the avatar has those animations, and that the names of those animations end in 'ON' and 'OFF'. Ex: HatON, ButtonON, SweaterON, etc." 
-            , helpStyle
-            , GUILayout.ExpandWidth(true));
-            GUILayout.Label(
-            "For every int toggle animation clip you create, make sure the FX Layer (Animator Controller) of the avatar has those animations, and that the names of those animations end in 'Mat' and a following number.. Ex: SweaterMat1, SweaterMat2, HairMat1, HairMat2, etc."
-            , helpStyle
-            , GUILayout.ExpandWidth(true));
-            GUILayout.Label(
-            "For every float animation clip you create, make sure the FX Layer (Animator Controller) of the avatar has those animations, and that the names of those animations end in 'Slider'. Ex: HueSlider0, HueSlider1, SweaterSlider0, SweaterSlider1, etc."
-            , helpStyle
-            , GUILayout.ExpandWidth(true));
-        }
-
-    }
-
-    public GameObject avatar;
-    private Animator animator;
-    public List<Motion> clips;
-    private bool TogglesMenu;
-    private bool SetupMenus;
-    private bool howToUse;
-    private int integerExample;
-
-    public void FindAcessoryToggles()
-    {
-        
-        animator = avatar.GetComponent<Animator>();
-
-        //Finds the FX layer of the avatar as an animator controller we can edit.
-        var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-
-        if (controller == null)
-        {
-            Debug.Log("There is no FX Layer on this avatar! FX Layer controller is required for this script!");
-            return;
-        }
-
-        else
-            Debug.Log("FX Layer found! Proceeding . . . ");
-        //Gets all of the animation clips on the animator in order to sort through later.
-        var getClips = controller.animationClips;
-        var sortClips = new List<AnimationClip>();
-        var clipSuffixs = new List<string>();
-        var listsOfClips = new List<List<AnimationClip>>();
-
-        //Iterates through each animationclip in the controller to add to a sorted list. Helps setup our other lists.
-        foreach (var clip in getClips)
-        {
-            if (clip.name.EndsWith("on", StringComparison.OrdinalIgnoreCase) || clip.name.EndsWith("off", StringComparison.OrdinalIgnoreCase))
-            {
-                sortClips.Add(clip);
-            }
+            //Creating a new editor window, and then shows it
+            EzAvatar window = (EzAvatar)EditorWindow.GetWindow(typeof(EzAvatar));
+            window.Show();
 
         }
+        public GameObject avatar;
+        public Material[] material = new Material[0];
+        private bool MaterialFoldout;
+        public List<Material> materials = new List<Material>();
+        public Material matslot;
+        public List<Material> matslots = new List<Material>();
+        private static Vector2 scrollview;
+        private List<string> categoryFields = new List<string>();
+        private List<bool> categoryFoldouts = new List<bool>();
+        Dictionary<Category, List<Material>> categories = new Dictionary<Category, List<Material>>();
+        private string enterText;
+        private int count;
+        private string debug;
 
-        sortClips.OrderBy(x => x.name);
-
-        for (int i = 0; i < sortClips.Count; i++)
+        //Creates a new entry in our dictionary which stores the category name, the reference to the foldout bool, and the list of materials.
+        public void AddCategory(Dictionary<Category, List<Material>> dict, string categoryName, bool foldoutBool, List<Material> dictMatList)
         {
-            var temp = sortClips[i].name;
-            var suffix = temp.Substring(0, temp.LastIndexOf("O", StringComparison.OrdinalIgnoreCase));
-            clipSuffixs.Add(suffix);
-            //Compares the suffix of the current clip name with the last clip to see if not the same. If so, it will make a new list and add ON && OFF clips.
-            if (i > 1 && clipSuffixs[i] == clipSuffixs[i - 1])
+            Category category = new Category();
+            category.name = categoryName;
+            category.foldout = foldoutBool;
+            category.slots = dictMatList.Count;
+            dict.Add(category, dictMatList);
+        }
+
+        public bool DoesKeyExist(Dictionary<Category, List<Material>> dict, string categoryName, bool foldoutBool)
+        {
+            bool result = new bool();
+            foreach(var kvp in dict)
             {
-                var tempTwoClips = new List<AnimationClip>();
-                tempTwoClips.Add(sortClips[i]);
-                tempTwoClips.Add(sortClips[(i - 1)]);
-                if(tempTwoClips.Count == 2)
+                if (kvp.Key.name.Equals(categoryName) && kvp.Key.foldout.Equals(foldoutBool))
                 {
-                    listsOfClips.Add(tempTwoClips);        
+                    result = true;
+                }
+                else if (!kvp.Key.name.Equals(categoryName) && !kvp.Key.foldout.Equals(foldoutBool))
+                {
+                    result = false;
                 }
             }
-
+            return result;
         }
-        //Iterates through each list of animation clips. Per list (pair of 2 animations) it will create a new layer.
-        for(int i = 0; i < listsOfClips.Count; i++)
+        
+        void DrawMaterialUI()
         {
-            var clipname = listsOfClips[i].First().name;
-            var nameBeforeONOFF = clipname.Substring(0, clipname.LastIndexOf('O'));
-            var layerName = "Toggle " + nameBeforeONOFF;
-            var parameterName = $"{nameBeforeONOFF}_Toggle";
-            var parameterBool = AnimatorControllerParameterType.Bool;
-            var doesLayerExist = false;
-            var doesParameterExist = false;
-            var doesParamatereExistName = "";
+            //Creates a foldout for each category made, which also holds an add button that will add a field
+            for (int i = 0; i < categories.Count; i++)
+            {
+                var name = categoryFields[i];
+                EditorGUILayout.BeginVertical();
+                categoryFoldouts[i] = EditorGUILayout.Foldout(categoryFoldouts[i], name, true);
+                //Logic for what will be under each category foldout, in this case it will be material object fields.
+                if (categoryFoldouts[i])
+                {
+                    int hash = categoryFoldouts[i].GetHashCode();
+                    Array.Resize(ref categories.ElementAt(i).Key.objectRef, categories.Count);
+                    categories.ElementAt(i).Key.objectRef[i] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", categories.ElementAt(i).Key.objectRef[i], typeof(GameObject), true);
+                    if (hash == categories.Keys.ElementAt(i).foldout.GetHashCode())
+                    {
+                        //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
+                        for (int j = 0; j < categories.Keys.ElementAt(i).slots; j++)
+                        {
+                            Array.Resize(ref categories.Keys.ElementAt(i).materials, categories.Keys.ElementAt(i).slots);
+                            EditorGUILayout.BeginVertical();
+                            categories.Keys.ElementAt(i).materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", categories.Keys.ElementAt(i).materials[j], typeof(Material), false);
+                            //Only adds the material to the list if the material is not already in the list.
+                            if (!categories.Values.ElementAt(i).Contains(categories.Keys.ElementAt(i).materials[j]) && categories.Keys.ElementAt(i).materials[j] != null)
+                                categories.Values.ElementAt(i).Add(categories.Keys.ElementAt(i).materials[j]);
+                            EditorGUILayout.EndVertical();
+                        }
+                    }
+                }
+                //Adds a button that increments an int, which is used to create new material fields
+                if (GUILayout.Button("Add"))
+                {
+                    categories.ElementAt(i).Key.slots += 1;
+                }
 
-            /* ********************************** */
-            // IGNORE - these are checks to make sure nothing extra is created if not needed.
-            if (GetLayerByName(controller, layerName) != null)
-            {
-                doesLayerExist = true;
+                EditorGUILayout.EndVertical();
             }
-            
-            if(GetParameterByName(controller, parameterName) != null)
+        }
+
+        public void OnGUI()
+        {
+            //Sets up a gameobject slot within the editor window.
+            avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
+            EditorGUILayout.LabelField(debug);
+            MaterialFoldout = EditorGUILayout.Foldout(MaterialFoldout, "Material", true);
+            EditorGUILayout.BeginScrollView(scrollview);
+            //Creates the foldout which holds material categories
+            if (MaterialFoldout)
             {
-                doesParameterExist = true;
-            }
-            
-            //Do nothing if layers and parameters already exist for the toggle.
-            if (doesLayerExist == true)
-            {
+                enterText = EditorGUILayout.TextField(enterText);
+                //Creates 'create category' button
+                if (GUILayout.Button("Create category"))
+                {
+                    var newMatList = new List<Material>();
+                    if (count == 0)
+                    {
+                        categoryFoldouts.Add(true);
+                        categoryFields.Add(enterText);
+                        AddCategory(categories, enterText, categoryFoldouts.Last(), newMatList);
+                    }
+                    //Prevents categories with the same names being made
+                    if (count > 0)
+                    {
+                        var exists = DoesKeyExist(categories, enterText, categoryFoldouts.ElementAt(categoryFoldouts.Count - 1));
+                        if (!exists)
+                        {
+                            categoryFoldouts.Add(true);
+                            categoryFields.Add(enterText);
+                            AddCategory(categories, enterText, categoryFoldouts.Last(), newMatList);
+                        }
+                        else {
+                            Debug.Log("Category already exists! Try a different name.");
+                            debug = "Category already exists! Try a different name.";
+                        }
+                    }
+                    enterText = "";
+                    count++;
+                }
+                if (GUILayout.Button("test"))
+                    MakeAnimationClips(categories, Type.Material);
+                DrawMaterialUI();
                
             }
+            EditorGUILayout.EndScrollView();
+        }
+
+        public enum Type
+        {
+            Material,
+            GameObject
+        }
+        public string MaterialToGUID(Material mat)
+        {
+            var mGUID = "";
+            var mFileId = ""; 
+            bool success = AssetDatabase.TryGetGUIDAndLocalFileIdentifier(mat, out string GUID, out long fileId);          
             
-            if(doesParameterExist == true)
-            {
-                doesParamatereExistName = GetParameterByName(controller, parameterName).name;
+            if (success){
+                mGUID = GUID;
+                mFileId = fileId.ToString();
             }
-            
-            /* ********************************** */
-
-            //Creating of layers logic.
-            if (doesLayerExist == false)
-            {
-                controller.AddLayer(layerName);
-                //Only adds the parameter to our animator controller if it doesn't exist.
-                if (doesParameterExist == false)
-                {
-                    controller.AddParameter(parameterName, parameterBool);
-                }
-                //If parameter exists, it will use that parameter to setup anything it needs to. Aka if other parts don't exist but the parameter does.
-                if(doesParameterExist == true)
-                {
-                    parameterName = doesParamatereExistName;
-                }
-                //Retrieves the new layer we just made based on its name (controller.addlayer is essentially stored in newLayer, pog!)
-                var newLayer = GetLayerByName(controller, layerName);
-                SetLayerWeight(controller, newLayer, 1);
-                //Stores statemachine of our new layer
-                var stateMachine = newLayer.stateMachine;
-                var check1 = false;
-                var check2 = false;
-                var idleState = new AnimatorState();
-                var onState = new AnimatorState();
-
-                foreach (var clip in listsOfClips[i])
-                {
-                    var clipName = clip.name;
-                    //Adds new statemachine to our layers
-                    if (clipName.EndsWith("off", StringComparison.OrdinalIgnoreCase))
-                    {
-                        idleState = stateMachine.AddState("OFF");
-                        check1 = true;
-                    }
-                    if (clipName.EndsWith("on", StringComparison.OrdinalIgnoreCase))
-                    {
-                        onState = stateMachine.AddState("ON");
-                        check2 = true;
-                    }
-
-                }
-                //This will happen only after an off and on state has been created inside the current layer.
-                if (check1 == true && check2 == true)
-                {
-                    //Creating transition from on to off, and vice versa. 
-                    var idleToON = idleState.AddTransition(onState);
-                    var onToIdle = onState.AddTransition(idleState);
-                    //This just adds our bool and checks to see if its true or false.
-                    idleToON.AddCondition(AnimatorConditionMode.If, 1, parameterName);
-                    onToIdle.AddCondition(AnimatorConditionMode.IfNot, 1, parameterName);
-                    //These lines will turn exit mode to 0 and etc like 3.0 setup be
-                    ApplyTransitionSettings(idleToON);
-                    ApplyTransitionSettings(onToIdle);
-                    //Adds parameters to parameter menu           
-                    if (avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters.FindParameter(parameterName) == null)
-                    {
-                        AddNewParameter(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parameterName);
-                    } 
-                    //Puts the correct animation clip in the corresponding states.
-                    foreach (var clip in listsOfClips[i])
-                    {
-                        if (clip.name.EndsWith("off", StringComparison.OrdinalIgnoreCase))
-                        {
-                            idleState.motion = clip;
-                        }
-                        if (clip.name.EndsWith("on", StringComparison.OrdinalIgnoreCase))
-                        {
-                            onState.motion = clip;
-                        }
-                    }
-                    check1 = false;
-                    check2 = false;
-                    doesLayerExist = false;
-                    doesParameterExist = false;
-                }
-
-            }
-        }
-        Debug.Log("Your avatar is now setup for accessory toggles! Woo!");
-    }
-
-
-    public AnimatorControllerLayer GetLayerByName(AnimatorController ac, string name)
-    {
-        foreach (var currLayer in ac.layers)
-        {
-            if (currLayer.name == name)
-                return currLayer;
-        }
-        return null;
-    }
-
-    public AnimatorControllerParameter GetParameterByName(AnimatorController p, string name)
-    {
-        foreach (var parameter in p.parameters)
-        {
-            if (parameter.name == name)
-                return parameter;
-        }
-        return null;
-    } 
-
-    //UHHHHHH, unity is annoying, so u gotta do like 500 lines of code to set the layer weight.
-    public void SetLayerWeight(AnimatorController ac, AnimatorControllerLayer acl, float newWeight)
-    {
-        SerializedObject so = new SerializedObject(ac);
-        var layers = so.FindProperty("m_AnimatorLayers");
-        foreach (SerializedProperty currLayer in layers)
-        {
-            if (currLayer.FindPropertyRelative("m_Name").stringValue == acl.name)
-            {
-                currLayer.FindPropertyRelative("m_DefaultWeight").floatValue = newWeight;
-            }
-        }
-        so.ApplyModifiedProperties();
-    }
-
-    //Literally just takes a transition and applies optimal settings to it.
-    public static void ApplyTransitionSettings(AnimatorStateTransition ast)
-    {
-        ast.hasExitTime = false;
-        ast.exitTime = 0;
-        ast.hasFixedDuration = false;
-        ast.duration = 0;
-    }
-
-    //UHHHHHHH... it doesnt need an explanation. it just does what it do.
-    public VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.Parameter AddNewParameter(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters vrcExpressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType valueType, float defaultValue, string name)
-    {
-        SerializedObject parameters_S = new SerializedObject(vrcExpressionParameters);
-        parameters_S.FindProperty("parameters").arraySize++;
-        parameters_S.ApplyModifiedProperties();
-
-        vrcExpressionParameters.parameters[vrcExpressionParameters.parameters.Length - 1].valueType = valueType;
-        vrcExpressionParameters.parameters[vrcExpressionParameters.parameters.Length - 1].defaultValue = defaultValue;
-        vrcExpressionParameters.parameters[vrcExpressionParameters.parameters.Length - 1].name = name;
-        vrcExpressionParameters.parameters[vrcExpressionParameters.parameters.Length - 1].saved = true;
-        return vrcExpressionParameters.parameters[vrcExpressionParameters.parameters.Length - 1];
-    }
-
-    public void ForceAnimatorStatePosition(AnimatorState animatorState, Vector3 newPos)
-    {
-        SerializedObject so = new SerializedObject(animatorState);
-        var posParameter = so.FindProperty("m_Position");
-        posParameter.vector3Value = newPos;
-        so.ApplyModifiedProperties();
-    }
-
-
-    public void FindMaterialToggles()
-    {
-
-        var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-
-        if (controller == null)
-        {
-            Debug.Log("There is no FX Layer on this avatar! FX Layer controller is required for this script!");
-            return;
-        }
-
-        else
-            Debug.Log("FX Layer found! Proceeding . . . ");
-        var getClips1 = controller.animationClips;
-        //Iterates through each animationclip in the controller     
-        foreach (var clip1 in getClips1)
-        {
-            /*Checks to see if the animation clip names contain ON, and if so, it will take whatever is to the left of that,
-            and add layers and parameters based on the name.*/
-            var lastChar = clip1.name.Last();
-            var endsWithNum = lastChar >= '0' && lastChar <= '9';
-            if (clip1.name.EndsWith($"mat{lastChar}", StringComparison.OrdinalIgnoreCase) || clip1.name.EndsWith("mat", StringComparison.OrdinalIgnoreCase))
-            {
-                var temp1 = clip1.name;
-                //Fetches the name of the clip from t and to the left, ignoring whether t is capital or not.
-                var nameBeforeONOFF1 = temp1.Substring(0, temp1.LastIndexOf('t') + 1);
-                var layerName = nameBeforeONOFF1;
-                Debug.Log("Found material switch clip " + clip1.name + ". Creating layers and parameters ...");
-                var parameterName = nameBeforeONOFF1;
-                //This is used to get the name of the current layer being worked with. If it doesn't exist, we create a layer.
-                var tempNewLayer = GetLayerByName(controller, layerName);
-                var doesLayerExist = false;
-                var doesParameterExist = false;
-                var doesParamatereExistName = "";
-
-                /* ********************************** */
-                // IGNORE - these are checks to make sure nothing extra is created if not needed.
-                if (GetLayerByName(controller, layerName) != null)
-                {
-                    doesLayerExist = true;
-                }
-
-                if (GetParameterByName(controller, parameterName) != null)
-                {
-                    doesParameterExist = true;
-                }
-
-                if (doesLayerExist == true)
-                {
-
-                }
-
-                if (doesParameterExist == true)
-                {
-                    doesParamatereExistName = GetParameterByName(controller, parameterName).name;
-                }
-                /* ********************************** */
-
-                if (avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters.FindParameter(parameterName) == null)
-                {
-                    AddNewParameter(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int, 0, parameterName);
-                }
-
-                //Checks to see if a layer already exists with the name of the anim clip, if it does, it will simply add parameters to THAT layer. IF not, it will make the layer first,
-                //And then do its job. This way, we are able to organize mat toggles by the different type of mat toggle. Think: suffix. Ex: SweaterMat, all statemachines are made in that new layer.
-                //Then HatMat, all statemachines are made in that new layer.
-
-
-                if (doesLayerExist == false)
-                {
-                    if (tempNewLayer == null)
-                    {
-                        controller.AddLayer(layerName);
-                        var newLayer1 = GetLayerByName(controller, layerName);
-                        SetLayerWeight(controller, newLayer1, 1);
-                        int i = 0;
-                        var y = 0;
-                        if (doesParameterExist == false)
-                        {
-                            controller.AddParameter(parameterName, AnimatorControllerParameterType.Int);
-                        }
-                        //If parameter exists, it will use that parameter to setup anything it needs to. Aka if other parts don't exist but the parameter does.
-                        if (doesParameterExist == true)
-                        {
-                            parameterName = doesParamatereExistName;
-                        }
-                        var tempData = newLayer1.ToString();
-                        var stateMachine1 = newLayer1.stateMachine;
-                        var clipsCheck = newLayer1.name;
-                        //Works on the current layer in order to add states and transitions for you. It needs a foreach statement in order to apply these for each layer.
-                        var currentIteration = 0;
-                        foreach (var layerCheck in clipsCheck)
-                        {
-
-                            var onState = stateMachine1.AddState($"{parameterName}" + i++, new Vector3(360, currentIteration * 55));
-                            var onStateName = onState.name;
-                            var stateLastChar = onStateName.Last();
-                            var transitionFromAnyState = stateMachine1.AddAnyStateTransition(onState);
-                            transitionFromAnyState.AddCondition(AnimatorConditionMode.Equals, y++, parameterName);
-                            ApplyTransitionSettings(transitionFromAnyState);
-                            //Checks to see if the statename and current clip name are the same, if so, it'll add the corresponding animationclip.
-                            if (onStateName == clip1.name)
-                            {
-                                onState.motion = clip1;
-                            }
-                            //If the statename and clip name are not the same, it will check the clip names until it is the same, then put it in
-                            else if (onStateName != clip1.name)
-                            {
-                                foreach (var clip2 in getClips1)
-                                {
-                                    var lastChar2 = clip2.name.Last();
-                                    if (clip2.name == onStateName)
-                                    {
-                                        onState.motion = clip2;
-                                    }
-
-                                }
-
-                                if (onState.motion == null)
-                                {
-                                    stateMachine1.RemoveState(onState);
-                                }
-                            }
-                            currentIteration++;
-                        }
-                    }
-                }
-            }
-        }
-
-
-        Debug.Log("Your avatar is now set up for material toggles! WAOW");
-
-
-    }
-
-
-    public void FindFloats()
-    {
-        var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-
-        if (controller == null)
-        {
-            Debug.Log("There is no FX Layer on this avatar! FX Layer controller is required for this script!");
-            return;
-        }
-
-        else
-            Debug.Log("FX Layer found! Proceeding . . . ");
-        var getClips1 = controller.animationClips;
-        //Iterates through each animationclip in the controller     
-        foreach (var clip1 in getClips1)
-        {
-            
-            var lastChar = clip1.name.Last();
-            var endsWithNum = lastChar >= '0' && lastChar <= '9';
-            if (clip1.name.EndsWith($"slider{lastChar}", StringComparison.OrdinalIgnoreCase))
-            {
-                var temp1 = clip1.name;
-                //Fetches the name of the clip from r and to the left, ignoring whether r is capital or not.
-                var nameBeforeONOFF1 = temp1.Substring(0, temp1.LastIndexOf('r') + 1);
-                var suffix = temp1.Substring(0, temp1.LastIndexOf('s'));
-                var clipList = nameBeforeONOFF1.ToList();
-                var layerName = nameBeforeONOFF1;
-                Debug.Log("Found float clip " + clip1.name + ". Creating layers and parameters ...");
-                var parameterName = nameBeforeONOFF1;
-                //This is used to get the name of the current layer being worked with. If it doesn't exist, we create a layer.
-                var tempNewLayer = GetLayerByName(controller, layerName);
-                var doesLayerExist = false;
-                var doesParameterExist = false;
-                var doesParamatereExistName = "";
-
-                /* ********************************** */
-                // IGNORE - these are checks to make sure nothing extra is created if not needed.
-                if (GetLayerByName(controller, layerName) != null)
-                {
-                    doesLayerExist = true;
-                }
-
-                if (GetParameterByName(controller, parameterName) != null)
-                {
-                    doesParameterExist = true;
-                }
-
-                if (doesLayerExist == true)
-                {
-
-                }
-
-                if (doesParameterExist == true)
-                {
-                    doesParamatereExistName = GetParameterByName(controller, parameterName).name;
-                }
-                /* ********************************** */
-
-                if (avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters.FindParameter(parameterName) == null)
-                {
-                    AddNewParameter(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Float, 0, parameterName);
-                }
-                
-                if(doesLayerExist == false)
-                {
-                    if (tempNewLayer == null)
-                    {
-                        controller.AddLayer(layerName);
-                        var newLayer1 = GetLayerByName(controller, layerName);
-                        SetLayerWeight(controller, newLayer1, 1);
-                        controller.AddParameter(parameterName, AnimatorControllerParameterType.Float);
-                        if (doesParameterExist == false)
-                        {
-                            controller.AddParameter(parameterName, AnimatorControllerParameterType.Float);
-                        }
-                        //If parameter exists, it will use that parameter to setup anything it needs to. Aka if other parts don't exist but the parameter does.
-                        if (doesParameterExist == true)
-                        {
-                            parameterName = doesParamatereExistName;
-                        }
-                        var tempData = newLayer1.ToString();
-                        //Blendtree logic
-                        var blendtree = new BlendTree();
-                        blendtree.name = layerName;
-                        var stateMachine1 = newLayer1.stateMachine;
-                        var clipsCheck = newLayer1.name;
-                        var onState = stateMachine1.AddState($"{parameterName}");
-                        var blendtreename = blendtree.name;
-                        var rootStateMachine = newLayer1.stateMachine;
-                        var stateWithBlendTree = rootStateMachine.states[0].state;
-                        //Works on the current layer in order to add states and transitions for you. It needs a foreach statement in order to apply these for each layer.
-                        var onStateName = onState.name;
-                        //Checks to see if the suffix of clips are the same, and adds clips to the blendtree.
-                        foreach (var clip2 in getClips1)
-                        {
-                            var temp2 = clip2.name;
-                            var clipsuffix = temp2.Substring(0, temp2.LastIndexOf('r') + 1);
-                            var blendsuffix = blendtreename.Substring(0, blendtreename.LastIndexOf('r') + 1);
-                            //If the blendtree name and clip name are the same, it will add that animation clip to the blendtree.
-                            if (blendsuffix == clipsuffix)
-                            {
-                                blendtree.AddChild(clip2);
-                                Debug.Log($"Added motion {clip2} to the blendtree {blendtree.name}");
-
-                            }
-
-                        }
-                        blendtree.blendParameter = parameterName;
-                        stateWithBlendTree.motion = blendtree;
-                        AssetDatabase.AddObjectToAsset(blendtree, stateWithBlendTree);
-
-                    }
-                }
-                
+            else{
+                Debug.Log($"Failed to fetch the GUID of material {mat.name}.");
+                return "";
             }
 
+            var value = "fileID: " + $"{fileId}, guid: {GUID}, " + "type: 2";
+            return value;
         }
-        Debug.Log("Your avatar is now set up for floats! WAOW");
-    }
 
-    public void SetupAccessoryToggleMenus()
-    {
-        //Checks to see if there is a directory already for menus created with this script. If not, it'll make it.
-
-
-        var savePath = $"{Application.dataPath}/Nin/EZAvatarSetup/{avatar.name}/Menus";
-        Debug.Log(savePath);
-        if (!Directory.Exists(savePath))
+        public void ExportClip(AnimationClip clip, string meshName)
         {
-            Directory.CreateDirectory(savePath);
-            AssetDatabase.Refresh();
+            var savePath = $"{Application.dataPath}/Nin/EZAvatar/{avatar.name}/Animations/{meshName}";
+            if (!Directory.Exists(savePath)){
+                Directory.CreateDirectory(savePath);
+                AssetDatabase.Refresh();
+            }
+            if (avatar != null) {
+                AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}/{clip.name}.anim");
+                Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}!");
+            }
+            else
+                debug = "Avatar gameobject was not found.";
+                Debug.Log(debug);
         }
-      
-        var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-        var parametersMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
-        var expressionsMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
-        var parametersNames = parametersMenu.parameters.ToList().Select(x => x.name).ToList();
-        VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu currentPage = null;
-        var mainPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-        expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+
+        public SkinnedMeshRenderer FindRenderer(GameObject gameObj)
         {
-            name = $"Toggles",
-            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-            subMenu = mainPage
-        }); 
-        AssetDatabase.CreateAsset(mainPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Toggles {avatar.name}.asset");
-        var currentIteration = 1;
-        foreach (var parameter in parametersMenu.parameters)
+            if (gameObj.GetComponent<SkinnedMeshRenderer>() != null)
+                return gameObj.GetComponent<SkinnedMeshRenderer>();
+            else 
+                debug = "Failed to retrieve skinned mesh renderer from the gameobject.";
+                Debug.Log(debug);
+
+            return null;
+        }
+
+        public void MakeAnimationClips(Dictionary<Category, List<Material>> categories, Type type)
         {
-           
-            if (currentPage == null || currentPage.controls.Count == 8)
+            var clips = new List<Material>();
+            if (type == Type.GameObject)
             {
-                
-                var previousPage = currentPage;
-                currentPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-                if (previousPage != null)
+
+            }
+            if (type == Type.Material)
+            {
+                foreach (var category in categories)
                 {
-                    AssetDatabase.CreateAsset(previousPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Toggles Page{currentIteration}.asset");
-                    mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                    {
-                        name = $"Page {currentIteration}",
-                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                        subMenu = previousPage
-                    });
+                    var count = 0;
+                    var layerName = category.Key.name;
+                    var materials = category.Value;
+                    var gameObj = category.Key.objectRef[count];
+
+                    if (materials.Count < 2) {
+                        debug = "Must provide a minimum of two materials! Base material and the swap materials.";
+                        Debug.Log(debug);
+                        return;
+                    }
                     
-                    currentIteration++;
-                }
-
-            }
-            
-            switch(parameter.valueType)
-            {
-                case VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool:
-                    currentPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    if (materials.Count >= 2)
                     {
-                        name = parameter.name,
-                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                        parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() {name = parameter.name},
-
-
-                    });
-                    break;
-
-                 
-                default: break;
-            }
-             
-                   
-        }
-
-        if (currentPage.controls.Count != 8)
-        {
-            
-            AssetDatabase.CreateAsset(currentPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Toggles Page{currentIteration}.asset");
-            mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-            {
-                name = $"Page {currentIteration}",
-                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                subMenu = currentPage
-            }); 
-        }
-        
-        
- 
-        
-
-    }
-
-    public void SetupMaterialMenus ()
-    {
-        //Checks to see if there is a directory already for menus created with this script. If not, it'll make it.
-
-
-        var savePath = $"{Application.dataPath}/Nin/EZAvatarSetup/{avatar.name}/Menus";
-        Debug.Log(savePath);
-        if (!Directory.Exists(savePath))
-        {
-            Directory.CreateDirectory(savePath);
-            AssetDatabase.Refresh();
-        }
-
-        var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-        var parametersMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
-        var expressionsMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
-        var parametersNames = parametersMenu.parameters.ToList().Select(x => x.name).ToList();
-        VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu currentPage = null;
-        var mainPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-        expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-        {
-            name = $"Mat Toggles",
-            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-            subMenu = mainPage
-        });
-        AssetDatabase.CreateAsset(mainPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Mat Toggles {avatar.name}.asset");
-        var currentIteration = 1;
-        //var parameterValue = 0;
-        //var parameterNameValue = 0;
-        var clips = controller.animationClips.Distinct().ToList().OrderBy(x => x.name);
-        var clipnames = clips.Select(y => y.name).ToList();
-        AnimationClip previousClip = null;
-
-
-        foreach (var clip in clips)
-        {
-            Debug.Log(clip.name);
-            var lastChar = clip.name.Last();
-            var parameterName = clip.name.Substring(0, clip.name.LastIndexOf('t') + 1);
-            if (clip.name.EndsWith($"mat{lastChar}", StringComparison.OrdinalIgnoreCase))
-            {
-                var clipssuffix = clip.name.Substring(0, clip.name.LastIndexOf('m') + 1);
-                var currentClip = clipnames.Where(x => x.Contains(clipssuffix)).FirstOrDefault();
-                var currentSuffix = currentClip.ToString().Substring(0, currentClip.LastIndexOf('m') + 1);
-                if (currentPage == null || currentPage.controls.Count == 8 || previousClip.name.Substring(0, previousClip.name.LastIndexOf("t") + 1) != parameterName)
-                {
-
-                    var previousPage = currentPage;
-                    currentPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-                    if (previousPage != null)
-                    {
-                        AssetDatabase.CreateAsset(previousPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Mat Toggles Page{currentIteration}.asset");
-                        mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
+                        if (render == null) {
+                            debug = "Mesh object was not found.";
+                            Debug.Log(debug);
+                        }
+                        var index = 0;
+                        SerializedObject matslotref = new SerializedObject(render);
+                        /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
+                        Of any of the materials in the category, which will allow us to find the proper element index of the material in which we will keyframe to be replaced to
+                        another.*/
+                        for (int i = 0; i < matslotref.FindProperty("m_Materials.Array").arraySize; i++)
                         {
-                            name = $"Page {currentIteration}",
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                            subMenu = previousPage
-                        });
+                            var material = render.sharedMaterials[i];
+                            for (int j = 0; j < materials.Count; j++)
+                            {
+                                SerializedObject mat = new SerializedObject(materials[j]);
+                                if(mat.FindProperty("m_Name").stringValue == material.name)
+                                {
+                                    index = i;
+                                    break;
+                                }
+                            }
+                        }
                         
-                        currentIteration++;
+                        //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
+                        EditorCurveBinding binding = new EditorCurveBinding();
+                        binding.type = typeof(SkinnedMeshRenderer);
+                        //Removes the avatar name from the front of the hierarchy path, as then the animation references would be incorrect.
+                        var path = render.gameObject.transform.GetHierarchyPath().Substring(avatar.name.Length + 1);
+                        binding.path = path;
+                        binding.propertyName = $"m_Materials.Array.data[{index}]";
+
+                        for (int i = 0; i < materials.Count; i++)
+                        {
+                            //We create a new animationclip for each material, with the name the same as the material name.
+                            var clip = new AnimationClip();
+                            clip.name = materials[i].name;           
+                            ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[1];
+                            keyframe[0].value = materials[i];
+                            keyframe[0].time = 0;
+                            AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
+                            ExportClip(clip, gameObj.name);
+                        } 
                     }
-
                 }
-
-                if (clipssuffix == currentSuffix)
-                {
-                    currentPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                    {
-                        name = parameterName + $"{lastChar}",
-                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                        parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName },
-                        value = lastChar - 48
-
-                    });
-
-                }
-
             }
-           
-            previousClip = clip;
-
         }
 
-        if (currentPage.controls.Count != 8)
-        {
-
-            AssetDatabase.CreateAsset(currentPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Mat Toggles Page{currentIteration}.asset");
-            mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-            {
-                name = $"Page {currentIteration}",
-                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                subMenu = currentPage
-            });
-        }
-
-
     }
-
-    public void SetupFloatMenus ()
-    {
-    //Checks to see if there is a directory already for menus created with this script. If not, it'll make it.
-
-
-    var savePath = $"{Application.dataPath}/Nin/EZAvatarSetup/{avatar.name}/Menus";
-    Debug.Log(savePath);
-    if (!Directory.Exists(savePath))
-    {
-        Directory.CreateDirectory(savePath);
-        AssetDatabase.Refresh();
-    }
-
-    var controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-    var parametersMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
-    var expressionsMenu = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
-    var parametersNames = parametersMenu.parameters.ToList().Select(x => x.name).ToList();
-    VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu currentPage = null;
-    var mainPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-    expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-    {
-        name = $"Radial Puppets",
-        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-        subMenu = mainPage
-    });
-    AssetDatabase.CreateAsset(mainPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Radial Puppets {avatar.name}.asset");
-    var currentIteration = 1;
-       
-
-        foreach (var parameter in parametersMenu.parameters)
-        {
-
-            if (currentPage == null || currentPage.controls.Count == 8)
-            {
-
-                var previousPage = currentPage;
-                currentPage = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu();
-                if (previousPage != null)
-                {
-                    AssetDatabase.CreateAsset(previousPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Radial Puppets Page{currentIteration}.asset");
-                    mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                    {
-                        name = $"{parameter.name}",
-                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                        subMenu = previousPage
-                    });
-
-                    currentIteration++;
-                }
-
-            }
-
-            switch (parameter.valueType)
-            {
-                case VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Float:
-                    currentPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                    {
-                        name = parameter.name,
-                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet,
-                        subParameters = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter[] { new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter { name = parameter.name } },
-
-
-                    });
-                    break;
-
-
-                default: break;
-            }
-
-        }
-
-
-        if (currentPage.controls.Count != 8)
-        {
-
-            AssetDatabase.CreateAsset(currentPage, $"Assets/Nin/EZAvatarSetup/{avatar.name}/Menus/Radial Puppets Page{currentIteration}.asset");
-            mainPage.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-            {
-                name = $"Page {currentIteration}",
-                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                subMenu = currentPage
-            });
-
-        }   
-    }
-
 }
+
 
 
