@@ -56,7 +56,7 @@ namespace EZAvatar
         public bool DoesKeyExist(Dictionary<Category, List<Material>> dict, string categoryName, bool foldoutBool)
         {
             bool result = new bool();
-            foreach(var kvp in dict)
+            foreach (var kvp in dict)
             {
                 if (kvp.Key.name.Equals(categoryName) && kvp.Key.foldout.Equals(foldoutBool))
                 {
@@ -69,10 +69,11 @@ namespace EZAvatar
             }
             return result;
         }
-        
+
         void DrawMaterialUI()
         {
             //Creates a foldout for each category made, which also holds an add button that will add a field
+            Rect lastRect = new Rect();
             for (int i = 0; i < categories.Count; i++)
             {
                 var name = categoryFields[i];
@@ -93,18 +94,38 @@ namespace EZAvatar
                             EditorGUILayout.BeginVertical();
                             categories.Keys.ElementAt(i).materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", categories.Keys.ElementAt(i).materials[j], typeof(Material), false);
                             //Only adds the material to the list if the material is not already in the list.
-                            if (!categories.Values.ElementAt(i).Contains(categories.Keys.ElementAt(i).materials[j]) && categories.Keys.ElementAt(i).materials[j] != null)
+                            if (!categories.Values.ElementAt(i).Contains(categories.Keys.ElementAt(i).materials[j]) && categories.Keys.ElementAt(i).materials[j] != null) 
+                            {
                                 categories.Values.ElementAt(i).Add(categories.Keys.ElementAt(i).materials[j]);
+                                if (categories.Keys.ElementAt(i).materials[j] != categories.Values.ElementAt(i)[j]) {
+                                    categories.Values.ElementAt(i)[j] = categories.Keys.ElementAt(i).materials[j];
+                                }
+                            }
                             EditorGUILayout.EndVertical();
                         }
                     }
-                }
-                //Adds a button that increments an int, which is used to create new material fields
-                if (GUILayout.Button("Add"))
-                {
-                    categories.ElementAt(i).Key.slots += 1;
-                }
 
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.FlexibleSpace();
+                    //Adds a button that increments an int, which is used to create new material fields
+                    if (GUILayout.Button("+", GUILayout.Width(35)))
+                    {
+                        categories.ElementAt(i).Key.slots += 1;
+                        lastRect = GUILayoutUtility.GetLastRect();
+                    }
+                    
+                    if (categories.ElementAt(i).Key.slots > 0)
+                    {
+                        if (GUILayout.Button("-", GUILayout.Width(35)))
+                        {
+                            categories.ElementAt(i).Key.slots -= 1;
+                            if (categories.Values.ElementAt(i).Count > 0)
+                                categories.Values.ElementAt(i).RemoveAt(categories.ElementAt(i).Key.slots + 1);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                
                 EditorGUILayout.EndVertical();
             }
         }
@@ -140,7 +161,8 @@ namespace EZAvatar
                             categoryFields.Add(enterText);
                             AddCategory(categories, enterText, categoryFoldouts.Last(), newMatList);
                         }
-                        else {
+                        else
+                        {
                             Debug.Log("Category already exists! Try a different name.");
                             debug = "Category already exists! Try a different name.";
                         }
@@ -151,7 +173,7 @@ namespace EZAvatar
                 if (GUILayout.Button("test"))
                     MakeAnimationClips(categories, Type.Material);
                 DrawMaterialUI();
-               
+
             }
             EditorGUILayout.EndScrollView();
         }
@@ -164,14 +186,16 @@ namespace EZAvatar
         public string MaterialToGUID(Material mat)
         {
             var mGUID = "";
-            var mFileId = ""; 
-            bool success = AssetDatabase.TryGetGUIDAndLocalFileIdentifier(mat, out string GUID, out long fileId);          
-            
-            if (success){
+            var mFileId = "";
+            bool success = AssetDatabase.TryGetGUIDAndLocalFileIdentifier(mat, out string GUID, out long fileId);
+
+            if (success)
+            {
                 mGUID = GUID;
                 mFileId = fileId.ToString();
             }
-            else{
+            else
+            {
                 Debug.Log($"Failed to fetch the GUID of material {mat.name}.");
                 return "";
             }
@@ -183,26 +207,28 @@ namespace EZAvatar
         public void ExportClip(AnimationClip clip, string meshName)
         {
             var savePath = $"{Application.dataPath}/Nin/EZAvatar/{avatar.name}/Animations/{meshName}";
-            if (!Directory.Exists(savePath)){
+            if (!Directory.Exists(savePath))
+            {
                 Directory.CreateDirectory(savePath);
                 AssetDatabase.Refresh();
             }
-            if (avatar != null) {
+            if (avatar != null)
+            {
                 AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}/{clip.name}.anim");
                 Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{avatar.name}/Animations/{meshName}!");
             }
             else
                 debug = "Avatar gameobject was not found.";
-                Debug.Log(debug);
+            Debug.Log(debug);
         }
 
         public SkinnedMeshRenderer FindRenderer(GameObject gameObj)
         {
             if (gameObj.GetComponent<SkinnedMeshRenderer>() != null)
                 return gameObj.GetComponent<SkinnedMeshRenderer>();
-            else 
+            else
                 debug = "Failed to retrieve skinned mesh renderer from the gameobject.";
-                Debug.Log(debug);
+            Debug.Log(debug);
 
             return null;
         }
@@ -223,16 +249,18 @@ namespace EZAvatar
                     var materials = category.Value;
                     var gameObj = category.Key.objectRef[count];
 
-                    if (materials.Count < 2) {
+                    if (materials.Count < 2)
+                    {
                         debug = "Must provide a minimum of two materials! Base material and the swap materials.";
                         Debug.Log(debug);
                         return;
                     }
-                    
+
                     if (materials.Count >= 2)
                     {
                         var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
-                        if (render == null) {
+                        if (render == null)
+                        {
                             debug = "Mesh object was not found.";
                             Debug.Log(debug);
                         }
@@ -247,14 +275,14 @@ namespace EZAvatar
                             for (int j = 0; j < materials.Count; j++)
                             {
                                 SerializedObject mat = new SerializedObject(materials[j]);
-                                if(mat.FindProperty("m_Name").stringValue == material.name)
+                                if (mat.FindProperty("m_Name").stringValue == material.name)
                                 {
                                     index = i;
                                     break;
                                 }
                             }
                         }
-                        
+
                         //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
                         EditorCurveBinding binding = new EditorCurveBinding();
                         binding.type = typeof(SkinnedMeshRenderer);
@@ -267,13 +295,13 @@ namespace EZAvatar
                         {
                             //We create a new animationclip for each material, with the name the same as the material name.
                             var clip = new AnimationClip();
-                            clip.name = materials[i].name;           
+                            clip.name = materials[i].name;
                             ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[1];
                             keyframe[0].value = materials[i];
                             keyframe[0].time = 0;
                             AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
                             ExportClip(clip, gameObj.name);
-                        } 
+                        }
                     }
                 }
             }
@@ -281,6 +309,5 @@ namespace EZAvatar
 
     }
 }
-
 
 
