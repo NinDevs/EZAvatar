@@ -8,7 +8,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 
 namespace EZAvatar
-{       
+{
     public class Helper
     {
         //Creates a new entry in our list which stores the category name, the reference to the foldout bool, and the list of materials.
@@ -49,7 +49,7 @@ namespace EZAvatar
             }
             return false;
         }
-     
+
         public string MaterialToGUID(Material mat)
         {
             var mGUID = "";
@@ -82,7 +82,7 @@ namespace EZAvatar
             return null;
         }
     }
-  
+
     public class VRCUtil
     {
         public static VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.Parameter AddNewParameter(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters vrcExpressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType valueType, float defaultValue, string name)
@@ -102,10 +102,10 @@ namespace EZAvatar
         {
             SerializedObject parameters_S = new SerializedObject(vrcExpressionParameters);
             var parameters = parameters_S.FindProperty("parameters");
-            for(int i = 0; i < parameters.arraySize; i++)
+            for (int i = 0; i < parameters.arraySize; i++)
             {
                 if (parameters.GetArrayElementAtIndex(i).name == parameterName)
-                    parameters.DeleteArrayElementAtIndex(i); 
+                    parameters.DeleteArrayElementAtIndex(i);
             }
             parameters_S.ApplyModifiedProperties();
         }

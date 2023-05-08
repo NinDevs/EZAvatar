@@ -155,7 +155,7 @@ namespace EZAvatar
                 }
                 if (GUILayout.Button("Run"))
                 {
-                    if(createAnimationClips)
+                    if (createAnimationClips)
                         AnimUtil.MakeAnimationClips(categories, CreationType.Material);
                     if (completeAnimatorLogic)
                         Algorithm.SetupMaterialToggles();
@@ -174,7 +174,7 @@ namespace EZAvatar
             categoryFields.Clear();
             categoryFoldouts.Clear();
         }
-        
+
     }
 }
 

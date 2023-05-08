@@ -90,7 +90,7 @@ namespace EZAvatar
             {
                 foreach (var state in statemachine.states)
                     statemachine.RemoveState(state.state);
-            }         
+            }
         }
 
         public static void ChangeParameterToInt(AnimatorController controller, AnimatorControllerLayer layer, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters expressionParametersMenu, string parametername)
@@ -98,9 +98,10 @@ namespace EZAvatar
             var statemachine = layer.stateMachine;
             if (statemachine.states.Count() == 2)
             {
-                VRCUtil.DeleteParameter(expressionParametersMenu, parametername);
-                VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int, 0, parametername);
-                controller.RemoveParameter(ControllerUtil.GetParameterByName(controller, parametername));
+                var vrcparam = expressionParametersMenu.parameters.Where(x => x.name == parametername).ToList()[0];
+                vrcparam.defaultValue = 0;
+                vrcparam.valueType = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int;
+                controller.RemoveParameter(GetParameterByName(controller, parametername));
                 controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
                 GetParameterByName(controller, parametername).defaultInt = 0;
                 int iteration = 0;
@@ -117,7 +118,7 @@ namespace EZAvatar
                         {
                             state.RemoveTransition(transitions[r]);
                             var anyStateTransition = statemachine.AddAnyStateTransition(state);
-                            ControllerUtil.ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
+                            ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
                             anyStateTransition.AddCondition(AnimatorConditionMode.Equals, iteration++, parametername);
                         }
                     }
@@ -139,8 +140,13 @@ namespace EZAvatar
             }
             if (EzAvatar.avatar != null)
             {
-                AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
-                Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}!");
+                if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim"))
+                {
+                    AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
+                    Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}!");
+                }
+                else
+                    Debug.Log($"Animation clip {clip.name} already exists within Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}, skipping...");
             }
             else
             {
@@ -219,9 +225,11 @@ namespace EZAvatar
                                 //We create a new animationclip for each material, with the name the same as the material name.
                                 var clip = new AnimationClip();
                                 clip.name = materials[i].name;
-                                ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[1];
+                                ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[2];
                                 keyframe[0].value = materials[i];
                                 keyframe[0].time = 0;
+                                keyframe[1].value = materials[i];
+                                keyframe[1].time = 1 / clip.frameRate;
                                 AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
                                 category.animClips.Add(clip);
                                 ExportClip(clip, gameObj.name);

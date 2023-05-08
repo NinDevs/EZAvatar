@@ -66,7 +66,8 @@ namespace EZAvatar
                         ControllerUtil.SetLayerWeight(controller, layers[i], 1);
                         var statemachine = layers[i].stateMachine;
                         //Removes states if we are not ignoring previous states
-                        if (!EzAvatar.ignorePreviousStates && !cleared) {
+                        if (!EzAvatar.ignorePreviousStates && !cleared)
+                        {
                             ControllerUtil.RemoveStates(layers[i]);
                             cleared = true;
                         }
@@ -117,7 +118,7 @@ namespace EZAvatar
                         //If we are have a layer that already has 2 states with on and off logic, and we are adding to that layer, we need to change the parameter to int
                         if (EzAvatar.ignorePreviousStates)
                         {
-                            if (statemachine.states.Count() == 2)
+                            if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                             {
                                 ControllerUtil.ChangeParameterToInt(controller, layers[i], expressionParametersMenu, parametername);
                                 switchToInt = true;
@@ -134,7 +135,7 @@ namespace EZAvatar
                         //Adds new parameter to expressions menu if missing
                         if (expressionParametersMenu.FindParameter(parametername) == null)
                             VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
-                       
+
                         if (ControllerUtil.GetAnimatorStateInLayer(layers[i], statename) == null && statemachine.states.Count() < 2)
                         {
                             states[i] = statemachine.AddState(statename, new Vector3(360, i * 55));
