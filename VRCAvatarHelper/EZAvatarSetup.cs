@@ -1,11 +1,8 @@
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.Animations;
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 
 
 namespace EZAvatar
@@ -52,7 +49,6 @@ namespace EZAvatar
         public static bool createAnimationClips = true;
         public static bool ignorePreviousStates = true;
         public static bool multiToggleGameObj = false;
-        private int subcount;
 
         public enum CreationType
         {
