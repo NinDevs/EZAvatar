@@ -81,6 +81,34 @@ namespace EZAvatar
 
             return null;
         }
+
+        public static void DisplayCreationResults()
+        {
+            EzAvatar.debug = $"Finished without errors. Created {Algorithm.layersCompleted} new layers and {Algorithm.statesCompleted} states. :)";
+            Debug.Log(EzAvatar.debug);
+            Algorithm.layersCompleted = 0;
+            Algorithm.statesCompleted = 0;
+        }
+
+        public static bool HasFXLayer()
+        {
+            var controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
+                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
+
+            if (controller == null)
+            {
+                EzAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
+                Debug.Log(EzAvatar.debug);
+                return false;
+            }
+
+            else
+            {
+                EzAvatar.debug = "FX Layer found! Proceeding . . . ";
+                Debug.Log(EzAvatar.debug);
+                return true;
+            }
+        }
     }
 
     public class VRCUtil

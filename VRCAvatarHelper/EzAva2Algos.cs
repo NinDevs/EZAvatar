@@ -8,29 +8,17 @@ namespace EZAvatar
 {
     public class Algorithm
     {
+        public static int layersCompleted = 0;
+        public static int statesCompleted = 0;
+
         public static void SetupMaterialToggles()
         {
             Animator animator = EzAvatar.avatar.GetComponent<Animator>();
             var controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
             var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
-            int layersCompleted = 0;
-            int statesCompleted = 0;
 
-            if (controller == null)
-            {
-                EzAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
-                Debug.Log(EzAvatar.debug);
-                return;
-            }
-
-            else
-            {
-                EzAvatar.debug = "FX Layer found! Proceeding . . . ";
-                Debug.Log(EzAvatar.debug);
-            }
-
-            foreach (var category in EzAvatar.categories)
+            foreach (var category in EzAvatar.categories.Where(x => x.type == CategoryType.Material))
             {
                 //Bool to make boolean transition logic
                 bool isAdded = false;
@@ -177,7 +165,6 @@ namespace EZAvatar
                                 try
                                 {
                                     //Creates a transition that will start from the first state to the second state
-                                    Debug.Log($"There are {states.Count()} states right now.");
                                     AnimatorStateTransition idleToOnTransition = new AnimatorStateTransition();
                                     idleToOnTransition.destinationState = statemachine.states[1].state;
                                     ControllerUtil.ApplyTransitionSettings(idleToOnTransition, false, 0, false, 0);
@@ -197,9 +184,89 @@ namespace EZAvatar
                     }
                 }
             }
+        }
 
-            EzAvatar.debug = $"Finished without errors. Created {layersCompleted} new layers and {statesCompleted} states. :)";
-            Debug.Log(EzAvatar.debug);
+        public static void SetupGameObjectToggles()
+        {
+            var controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
+                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
+            var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
+
+            foreach (var category in EzAvatar.categories.Where(x => x.type == CategoryType.GameObject))
+            {
+                var layername = $"Toggle {category.name}";
+                var clips = category.animClips;
+                var clipcount = clips.Count();
+                AnimatorControllerLayer[] layers = new AnimatorControllerLayer[clipcount];
+                AnimatorState[] states = new AnimatorState[clipcount];
+
+                EzAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
+                Debug.Log(EzAvatar.debug);
+
+                var cleared = false;
+
+                for (int i = 0; i < clipcount; i++)
+                {
+                    var statename = clips[i].name;
+                    var parametername = $"Toggle_{category.name}";
+
+                    if (ControllerUtil.GetLayerByName(controller, layername) == null)
+                    {
+                        controller.AddLayer(layername);
+                        layersCompleted++;
+                    }
+
+                    layers[i] = ControllerUtil.GetLayerByName(controller, layername);
+                    ControllerUtil.SetLayerWeight(controller, layers[i], 1);
+                    var statemachine = layers[i].stateMachine;
+
+                    //Removes states if we are not ignoring previous states
+                    if (!EzAvatar.ignorePreviousStates && !cleared)
+                    {
+                        ControllerUtil.RemoveStates(layers[i]);
+                        cleared = true;
+                    }
+
+                    //Adds bool parameter if there are only two anims we are working with
+                    if (ControllerUtil.GetParameterByName(controller, parametername) == null)
+                    {
+
+                        controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
+                        ControllerUtil.TurnOnParameterBool(controller, parametername);
+                    }
+
+                    //Adds new parameter to expressions menu if missing
+                    if (expressionParametersMenu.FindParameter(parametername) == null)
+                        VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
+
+                    states[i] = statemachine.AddState(statename, new Vector3(360, i * 55));
+                    statesCompleted++;
+
+                    //When both states have been created
+                    if (states.Count() == 2 && i == clipcount - 1)
+                    {
+                        try
+                        {
+                            //Creates a transition that will start from the first state to the second state
+                            AnimatorStateTransition onToOffTransition = new AnimatorStateTransition();
+                            onToOffTransition.destinationState = statemachine.states[1].state;
+                            ControllerUtil.ApplyTransitionSettings(onToOffTransition, false, 0, false, 0);
+                            onToOffTransition.AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
+                            statemachine.states[0].state.AddTransition(onToOffTransition);
+                            statemachine.states[0].state.motion = clips.Where(x => x.name.EndsWith("ON")).First();
+
+                            //Creates a transition that will start from the second state to the first state
+                            AnimatorStateTransition offToOnTransition = new AnimatorStateTransition();
+                            offToOnTransition.destinationState = statemachine.states[0].state;
+                            ControllerUtil.ApplyTransitionSettings(offToOnTransition, false, 0, false, 0);
+                            offToOnTransition.AddCondition(AnimatorConditionMode.If, 1, parametername);
+                            statemachine.states[1].state.AddTransition(offToOnTransition);
+                            statemachine.states[1].state.motion = clips.Where(x => x.name.EndsWith("OFF")).First();
+                        }
+                        catch { }
+                    }
+                }
+            }
         }
     }
 }

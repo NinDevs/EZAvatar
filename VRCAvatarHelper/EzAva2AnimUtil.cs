@@ -155,27 +155,23 @@ namespace EZAvatar
             }
         }
 
-        public static void MakeAnimationClips(List<Category> categories, EzAvatar.CreationType type)
+        public static void MakeAnimationClips(List<Category> categories)
         {
-            var clips = new List<Material>();
-
-            if (type == EzAvatar.CreationType.GameObject)
-            {
-
-            }
-
             if (EzAvatar.createAnimationClips)
             {
-                if (type == EzAvatar.CreationType.Material)
+                var allowed = false;
+                foreach (var category in categories)
                 {
-                    var allowed = false;
-                    foreach (var category in categories)
+                    if (category.type == CategoryType.Material)
                     {
                         var materials = category.materials;
-                        var gameObj = category.objectRef.FirstOrDefault();
+                        var gameObj = category.objects.FirstOrDefault();
 
-                        if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX)
-                            .ToList()[0].animatorController as AnimatorController, category.name) == true)
+                        //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
+                        //(just adding one material as a toggle where the layer already exists and has states).
+                        if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().
+                            Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController
+                            as AnimatorController, category.name) == true)
                             allowed = true;
 
                         if (materials.Count() < 2 && !allowed)
@@ -195,6 +191,7 @@ namespace EZAvatar
                             }
                             var index = 0;
                             SerializedObject matslotref = new SerializedObject(render);
+
                             /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
                             Of any of the materials in the category, which will allow us to find the proper element index of the material in which we will keyframe to be replaced to
                             another.*/
@@ -215,7 +212,7 @@ namespace EZAvatar
                             //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
                             EditorCurveBinding binding = new EditorCurveBinding();
                             binding.type = typeof(SkinnedMeshRenderer);
-                            //Removes the avatar name from the front of the hierarchy path, as then the animation references would be incorrect.
+                            //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
                             var path = render.gameObject.transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
                             binding.path = path;
                             binding.propertyName = $"m_Materials.Array.data[{index}]";
@@ -231,8 +228,50 @@ namespace EZAvatar
                                 keyframe[1].value = materials[i];
                                 keyframe[1].time = 1 / clip.frameRate;
                                 AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
+
                                 category.animClips.Add(clip);
                                 ExportClip(clip, gameObj.name);
+                            }
+                        }
+                    }
+
+                    if (category.type == CategoryType.GameObject)
+                    {
+                        var gameObj = category.objects;
+
+                        if (gameObj.Count() == 0 || category.objects[0] == null)
+                        {
+                            EzAvatar.debug = "Must provide a minimum of one gameobject.";
+                            Debug.Log(EzAvatar.debug);
+                            return;
+                        }
+
+                        if (gameObj.Count() >= 1)
+                        {
+                            for (int i = 0; i < gameObj.Count(); i++)
+                            {
+                                var path = gameObj[i].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
+
+                                //Creates animation clip for gameobject active
+                                var onClip = new AnimationClip();
+                                onClip.name = $"{gameObj[i].name}ON";
+                                var onCurve = new AnimationCurve();
+                                onCurve.AddKey(0, 1);
+                                onCurve.AddKey(1 / onClip.frameRate, 1);
+                                onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
+                                category.animClips.Add(onClip);
+                                ExportClip(onClip, gameObj[i].name);
+
+                                //Creates animation clip for gameobject inactive
+                                var offClip = new AnimationClip();
+                                offClip.name = $"{gameObj[i].name}OFF";
+                                var offCurve = new AnimationCurve();
+                                offCurve.AddKey(0, 0);
+                                offCurve.AddKey(1 / onClip.frameRate, 0);
+                                offClip.SetCurve(path, typeof(GameObject), "m_IsActive", offCurve);
+                                category.animClips.Add(offClip);
+                                ExportClip(offClip, gameObj[i].name);
+
                             }
                         }
                     }

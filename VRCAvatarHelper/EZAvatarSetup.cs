@@ -10,8 +10,14 @@ using System.IO;
 
 namespace EZAvatar
 {
+    public enum CategoryType
+    {
+        Material,
+        GameObject
+    }
     public class Category
     {
+        public CategoryType type;
         public string name;
         public bool foldout;
         public int slots { get; internal set; }
@@ -36,16 +42,16 @@ namespace EZAvatar
         private bool MaterialFoldout;
         private bool GameObjFoldout;
         private static Vector2 scrollview;
-        private List<string> categoryFields = new List<string>();
-        private List<bool> categoryFoldouts = new List<bool>();
         public static List<Category> categories = new List<Category>();
-        private string enterText;
+        private string matEnterText;
+        private string objEnterText;
         private int count;
         public static string debug;
         private bool settings;
         public static bool completeAnimatorLogic = true;
         public static bool createAnimationClips = true;
         public static bool ignorePreviousStates = true;
+        public static bool multiToggleGameObj = false;
         private int subcount;
 
         public enum CreationType
@@ -72,85 +78,87 @@ namespace EZAvatar
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
                 createAnimationClips = GUILayout.Toggle(createAnimationClips, "Create Animation Clips");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
+                //multiToggleGameObj = GUILayout.Toggle(multiToggleGameObj, "Create Multi-Toggle GameObject Toggles");
 
                 EditorGUILayout.EndHorizontal();
+            }
+
+            if (GUILayout.Button("Run"))
+            {
+                if (createAnimationClips)
+                    AnimUtil.MakeAnimationClips(categories);
+                if (completeAnimatorLogic)
+                {
+                    if (Helper.HasFXLayer() == true)
+                    {
+                        Algorithm.SetupMaterialToggles();
+                        Algorithm.SetupGameObjectToggles();
+                        Helper.DisplayCreationResults();
+                    }
+
+                }
+                InitializeUI();
             }
 
             //Creates the foldout which holds material categories
             MaterialFoldout = EditorGUILayout.Foldout(MaterialFoldout, "Material", true);
             if (MaterialFoldout)
-            {
-                enterText = EditorGUILayout.TextField(enterText);
-
-                if (GUILayout.Button("Create category"))
-                {
-                    if (count == 0)
-                    {
-                        categoryFoldouts.Add(true);
-                        categoryFields.Add(enterText);
-                        Helper.AddCategory(categories, enterText, categoryFoldouts.Last());
-                    }
-
-                    //Prevents categories with the same names being made
-                    if (count > 0)
-                    {
-                        var exists = Helper.DoesCategoryExist(categories, enterText);
-                        if (!exists)
-                        {
-                            categoryFoldouts.Add(true);
-                            categoryFields.Add(enterText);
-                            Helper.AddCategory(categories, enterText, categoryFoldouts.Last());
-                        }
-                        else
-                        {
-                            Debug.Log("Category already exists! Try a different name.");
-                            debug = "Category already exists! Try a different name.";
-                        }
-                    }
-                    enterText = "";
-                    count++;
-                }
-
-                if (GUILayout.Button("Run"))
-                {
-                    if (createAnimationClips)
-                        AnimUtil.MakeAnimationClips(categories, CreationType.Material);
-                    if (completeAnimatorLogic)
-                        Algorithm.SetupMaterialToggles();
-                    InitializeUI();
-                }
                 DrawMaterialUI();
-            }
+            GUILayout.Space(4);
+            GameObjFoldout = EditorGUILayout.Foldout(GameObjFoldout, "GameObject", true);
+            if (GameObjFoldout)
+                DrawGameObjUI();
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
 
         void DrawMaterialUI()
         {
-            //Creates a foldout for each category made, which also holds an add button that will add a field
-            for (int i = 0; i < categories.Count; i++)
+            matEnterText = EditorGUILayout.TextField(matEnterText);
+
+            if (GUILayout.Button("Create category"))
             {
-                var name = categoryFields[i];
+                if (count == 0)
+                {
+                    Helper.AddCategory(categories, matEnterText, true);
+                    categories.Last().type = CategoryType.Material;
+                }
+
+                //Prevents categories with the same names being made
+                if (count > 0)
+                {
+                    var exists = Helper.DoesCategoryExist(categories, matEnterText);
+                    if (!exists)
+                        Helper.AddCategory(categories, matEnterText, true);
+                    else
+                    {
+                        Debug.Log("Category already exists! Try a different name.");
+                        debug = "Category already exists! Try a different name.";
+                    }
+                }
+                matEnterText = "";
+                count++;
+            }
+
+            //Creates a foldout for each category made, which also holds an add button that will add a field
+            foreach (var category in categories.Where(x => x.type == CategoryType.Material))
+            {
+                var name = category.name;
                 EditorGUILayout.BeginVertical();
-                categoryFoldouts[i] = EditorGUILayout.Foldout(categoryFoldouts[i], name, true);
+                category.foldout = EditorGUILayout.Foldout(category.foldout, name, true);
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
-                if (categoryFoldouts[i])
+                if (category.foldout)
                 {
-                    int hash = categoryFoldouts[i].GetHashCode();
-                    categories.ElementAt(i).objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", categories.ElementAt(i).objects[0], typeof(GameObject), true);
+                    category.objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", category.objects[0], typeof(GameObject), true);
 
-                    if (hash == categories.ElementAt(i).foldout.GetHashCode())
+                    //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
+                    for (int i = 0; i < category.slots; i++)
                     {
-                        //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
-                        for (int j = 0; j < categories.ElementAt(i).slots; j++)
-                        {
-                            Array.Resize(ref categories.ElementAt(i).materials, categories.ElementAt(i).slots);
-                            EditorGUILayout.BeginVertical();
-                            categories.ElementAt(i).materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", categories.ElementAt(i).materials[j], typeof(Material), false);
-                            EditorGUILayout.EndVertical();
-                        }
-
+                        Array.Resize(ref category.materials, category.slots);
+                        EditorGUILayout.BeginVertical();
+                        category.materials[i] = (Material)EditorGUILayout.ObjectField($"Mat {i}", category.materials[i], typeof(Material), false);
+                        EditorGUILayout.EndVertical();
                     }
 
                     EditorGUILayout.BeginHorizontal();
@@ -159,14 +167,14 @@ namespace EZAvatar
                     //Adds a button that increments an int, which is used to create new material fields
                     if (GUILayout.Button("+", GUILayout.Width(35)))
                     {
-                        categories.ElementAt(i).slots += 1;
+                        category.slots += 1;
                     }
 
-                    if (categories.ElementAt(i).slots > 0)
+                    if (category.slots > 0)
                     {
                         if (GUILayout.Button("-", GUILayout.Width(35)))
                         {
-                            categories.ElementAt(i).slots -= 1;
+                            category.slots -= 1;
                         }
                     }
 
@@ -179,15 +187,78 @@ namespace EZAvatar
 
         void DrawGameObjUI()
         {
+            objEnterText = EditorGUILayout.TextField(objEnterText);
 
+            if (GUILayout.Button("Create category"))
+            {
+                if (count == 0)
+                {
+                    Helper.AddCategory(categories, objEnterText, true);
+                    categories.Last().type = CategoryType.GameObject;
+                }
+
+                //Prevents categories with the same names being made
+                if (count > 0)
+                {
+                    var exists = Helper.DoesCategoryExist(categories, objEnterText);
+                    if (!exists)
+                        Helper.AddCategory(categories, objEnterText, true);
+                    else
+                    {
+                        Debug.Log("Category already exists! Try a different name.");
+                        debug = "Category already exists! Try a different name.";
+                    }
+                }
+                objEnterText = "";
+                count++;
+            }
+
+            //Creates a foldout for each category made, which also holds an add button that will add a field
+            foreach (var category in categories.Where(x => x.type == CategoryType.GameObject))
+            {
+                var name = category.name;
+                EditorGUILayout.BeginVertical();
+                category.foldout = EditorGUILayout.Foldout(category.foldout, name, true);
+
+                //Logic for what will be under each category foldout, in this case it will be material object fields.
+                if (category.foldout)
+                {
+                    for (int j = 0; j < category.slots; j++)
+                    {
+                        Array.Resize(ref category.objects, category.slots);
+                        EditorGUILayout.BeginVertical();
+                        category.objects[j] = (GameObject)EditorGUILayout.ObjectField($"Object {j}", category.objects[j], typeof(GameObject), true);
+                        EditorGUILayout.EndVertical();
+                    }
+
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.FlexibleSpace();
+
+                    //Adds a button that increments an int, which is used to create new material fields
+                    if (GUILayout.Button("+", GUILayout.Width(35)))
+                    {
+                        category.slots += 1;
+                    }
+
+                    if (category.slots > 0)
+                    {
+                        if (GUILayout.Button("-", GUILayout.Width(35)))
+                        {
+                            category.slots -= 1;
+                        }
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                EditorGUILayout.EndVertical();
+            }
         }
 
         public void InitializeUI()
         {
-            enterText = "";
+            matEnterText = "";
             categories.Clear();
-            categoryFields.Clear();
-            categoryFoldouts.Clear();
         }
 
     }
