@@ -31,15 +31,19 @@ namespace EZAvatar
         static void Init()
         {
             //Creating a new editor window, and then shows it
-            EzAvatar window = (EzAvatar)EditorWindow.GetWindow(typeof(EzAvatar));
+            EzAvatar window = (EzAvatar)GetWindow(typeof(EzAvatar));
             window.Show();
 
         }
         public static GameObject avatar;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
-        private static Vector2 scrollview;
+        private bool MenuFoldout;
+        private static Vector2 matScrollView;
+        private static Vector2 objScrollView;
+        private static Vector2 menuScrollView;
         public static List<Category> categories = new List<Category>();
+        private static List<bool> layers = new List<bool>();
         private string matEnterText;
         private string objEnterText;
         private int count;
@@ -61,7 +65,6 @@ namespace EZAvatar
             //Sets up a gameobject slot within the editor window.
             avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
             EditorGUILayout.LabelField(debug);
-            EditorGUILayout.BeginScrollView(scrollview);
             EditorGUILayout.BeginVertical();
 
             //Creates the foldout which holds settings
@@ -74,7 +77,7 @@ namespace EZAvatar
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
                 createAnimationClips = GUILayout.Toggle(createAnimationClips, "Create Animation Clips");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
-                //multiToggleGameObj = GUILayout.Toggle(multiToggleGameObj, "Create Multi-Toggle GameObject Toggles");
+                multiToggleGameObj = GUILayout.Toggle(multiToggleGameObj, "Create Multi-Toggle GameObj Toggles");
 
                 EditorGUILayout.EndHorizontal();
             }
@@ -93,7 +96,7 @@ namespace EZAvatar
                     }
 
                 }
-                InitializeUI();
+                ReInitializeUI();
             }
 
             //Creates the foldout which holds material categories
@@ -104,12 +107,12 @@ namespace EZAvatar
             GameObjFoldout = EditorGUILayout.Foldout(GameObjFoldout, "GameObject", true);
             if (GameObjFoldout)
                 DrawGameObjUI();
-            EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
 
         void DrawMaterialUI()
         {
+            matScrollView = EditorGUILayout.BeginScrollView(matScrollView);
             matEnterText = EditorGUILayout.TextField(matEnterText);
 
             if (GUILayout.Button("Create category"))
@@ -177,12 +180,14 @@ namespace EZAvatar
                     EditorGUILayout.EndHorizontal();
                 }
 
+                EditorGUILayout.EndScrollView();
                 EditorGUILayout.EndVertical();
             }
         }
 
         void DrawGameObjUI()
         {
+            objScrollView = EditorGUILayout.BeginScrollView(objScrollView);
             objEnterText = EditorGUILayout.TextField(objEnterText);
 
             if (GUILayout.Button("Create category"))
@@ -247,13 +252,15 @@ namespace EZAvatar
                     EditorGUILayout.EndHorizontal();
                 }
 
+                EditorGUILayout.EndScrollView();
                 EditorGUILayout.EndVertical();
             }
         }
 
-        public void InitializeUI()
+        public void ReInitializeUI()
         {
             matEnterText = "";
+            objEnterText = "";
             categories.Clear();
         }
 

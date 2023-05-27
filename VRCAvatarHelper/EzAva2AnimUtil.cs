@@ -239,7 +239,7 @@ namespace EZAvatar
                     {
                         var gameObj = category.objects;
 
-                        if (gameObj.Count() == 0 || category.objects[0] == null)
+                        if (category.objects[0] == null)
                         {
                             EzAvatar.debug = "Must provide a minimum of one gameobject.";
                             Debug.Log(EzAvatar.debug);
@@ -248,31 +248,51 @@ namespace EZAvatar
 
                         if (gameObj.Count() >= 1)
                         {
+                            var onClip = new AnimationClip();
+                            var offClip = new AnimationClip();
+                            onClip.name = $"{category.name}ON";
+                            offClip.name = $"{category.name}OFF";
+
                             for (int i = 0; i < gameObj.Count(); i++)
                             {
+
                                 var path = gameObj[i].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
 
-                                //Creates animation clip for gameobject active
-                                var onClip = new AnimationClip();
-                                onClip.name = $"{gameObj[i].name}ON";
+                                //Creates curves/keys for gameobject active, per object
                                 var onCurve = new AnimationCurve();
                                 onCurve.AddKey(0, 1);
                                 onCurve.AddKey(1 / onClip.frameRate, 1);
                                 onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
-                                category.animClips.Add(onClip);
-                                ExportClip(onClip, gameObj[i].name);
 
-                                //Creates animation clip for gameobject inactive
-                                var offClip = new AnimationClip();
-                                offClip.name = $"{gameObj[i].name}OFF";
+                                //Creates curves/keys for gameobject inactive, per object
                                 var offCurve = new AnimationCurve();
                                 offCurve.AddKey(0, 0);
                                 offCurve.AddKey(1 / onClip.frameRate, 0);
                                 offClip.SetCurve(path, typeof(GameObject), "m_IsActive", offCurve);
-                                category.animClips.Add(offClip);
-                                ExportClip(offClip, gameObj[i].name);
 
                             }
+                            //Creates the clip
+                            if (gameObj.Count() == 1)
+                            {
+                                onClip.name = $"{gameObj[0].name}ON";
+                                category.animClips.Add(onClip);
+                                ExportClip(onClip, gameObj[0].name);
+
+                                offClip.name = $"{gameObj[0].name}OFF";
+                                category.animClips.Add(offClip);
+                                ExportClip(offClip, gameObj[0].name);
+                            }
+
+                            else
+                            {
+                                category.animClips.Add(onClip);
+                                //Creates a folder called "Mutli-Toggles" which will host all animations that toggle multiple things at once, for neat organization :)
+                                ExportClip(onClip, "Multi-Toggles");
+
+                                category.animClips.Add(offClip);
+                                ExportClip(offClip, "Multi-Toggles");
+                            }
+
                         }
                     }
                 }
