@@ -3,7 +3,7 @@ using UnityEditor;
 using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using UnityEditor.Animations;
 
 namespace EZAvatar
 {
@@ -36,6 +36,8 @@ namespace EZAvatar
 
         }
         public static GameObject avatar;
+        public static AnimatorController controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
+                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
         private bool MenuFoldout;
@@ -44,6 +46,7 @@ namespace EZAvatar
         private static Vector2 menuScrollView;
         public static List<Category> categories = new List<Category>();
         private static List<bool> layers = new List<bool>();
+        private static List<AnimatorControllerLayer> selectedLayers = new List<AnimatorControllerLayer>();
         private string matEnterText;
         private string objEnterText;
         private int count;
@@ -102,33 +105,36 @@ namespace EZAvatar
             //Creates the foldout which holds material categories
             MaterialFoldout = EditorGUILayout.Foldout(MaterialFoldout, "Material", true);
             if (MaterialFoldout)
+            {
+                matScrollView = EditorGUILayout.BeginScrollView(matScrollView);
                 DrawMaterialUI();
-            GUILayout.Space(4);
+                EditorGUILayout.EndScrollView();
+            }
             GameObjFoldout = EditorGUILayout.Foldout(GameObjFoldout, "GameObject", true);
             if (GameObjFoldout)
+            {
+                objScrollView = EditorGUILayout.BeginScrollView(objScrollView);
                 DrawGameObjUI();
+                EditorGUILayout.EndScrollView();
+            }
             EditorGUILayout.EndVertical();
         }
 
         void DrawMaterialUI()
         {
-            matScrollView = EditorGUILayout.BeginScrollView(matScrollView);
             matEnterText = EditorGUILayout.TextField(matEnterText);
 
             if (GUILayout.Button("Create category"))
             {
                 if (count == 0)
-                {
-                    Helper.AddCategory(categories, matEnterText, true);
-                    categories.Last().type = CategoryType.Material;
-                }
+                    Helper.AddCategory(categories, matEnterText, CategoryType.Material);
 
                 //Prevents categories with the same names being made
                 if (count > 0)
                 {
-                    var exists = Helper.DoesCategoryExist(categories, matEnterText);
+                    var exists = Helper.DoesCategoryExist(categories, matEnterText, CategoryType.Material);
                     if (!exists)
-                        Helper.AddCategory(categories, matEnterText, true);
+                        Helper.AddCategory(categories, matEnterText, CategoryType.Material);
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
@@ -179,31 +185,25 @@ namespace EZAvatar
 
                     EditorGUILayout.EndHorizontal();
                 }
-
-                EditorGUILayout.EndScrollView();
                 EditorGUILayout.EndVertical();
             }
         }
 
         void DrawGameObjUI()
         {
-            objScrollView = EditorGUILayout.BeginScrollView(objScrollView);
             objEnterText = EditorGUILayout.TextField(objEnterText);
 
             if (GUILayout.Button("Create category"))
             {
                 if (count == 0)
-                {
-                    Helper.AddCategory(categories, objEnterText, true);
-                    categories.Last().type = CategoryType.GameObject;
-                }
+                    Helper.AddCategory(categories, objEnterText, CategoryType.GameObject);
 
                 //Prevents categories with the same names being made
                 if (count > 0)
                 {
-                    var exists = Helper.DoesCategoryExist(categories, objEnterText);
+                    var exists = Helper.DoesCategoryExist(categories, objEnterText, CategoryType.GameObject);
                     if (!exists)
-                        Helper.AddCategory(categories, objEnterText, true);
+                        Helper.AddCategory(categories, objEnterText, CategoryType.GameObject);
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
@@ -251,8 +251,6 @@ namespace EZAvatar
 
                     EditorGUILayout.EndHorizontal();
                 }
-
-                EditorGUILayout.EndScrollView();
                 EditorGUILayout.EndVertical();
             }
         }
