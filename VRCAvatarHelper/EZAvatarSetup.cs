@@ -21,7 +21,7 @@ namespace EZAvatar
         public Material[] materials;
         public GameObject[] objects = new GameObject[1];
         public List<AnimationClip> animClips = new List<AnimationClip>();
-        //public List<Category> subcategories = new List<Category>();
+        public AnimatorControllerLayer layer = null;
     }
 
     public class EzAvatar : EditorWindow
@@ -35,9 +35,24 @@ namespace EZAvatar
             window.Show();
 
         }
-        public static GameObject avatar;
-        public static AnimatorController controller = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
-                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
+        private static GameObject previousAvatar;
+        private static GameObject back;
+        public static GameObject avatar
+        {
+            get => back; set
+            {
+                back = value;
+                if (previousAvatar != avatar)
+                {
+                    previousAvatar = avatar;
+                    showMenuFoldout = Helper.HasFXLayer(0);
+                    ReInitializeUI();
+                }
+
+            }
+        }
+        // public static GameObject avatar;
+        public static AnimatorController controller = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
         private bool MenuFoldout;
@@ -45,17 +60,18 @@ namespace EZAvatar
         private static Vector2 objScrollView;
         private static Vector2 menuScrollView;
         public static List<Category> categories = new List<Category>();
-        private static List<bool> layers = new List<bool>();
-        private static List<AnimatorControllerLayer> selectedLayers = new List<AnimatorControllerLayer>();
-        private string matEnterText;
-        private string objEnterText;
+        private static List<bool> selectedLayerBools = new List<bool>();
+        public static List<AnimatorControllerLayer> selectedLayers = new List<AnimatorControllerLayer>();
+        private static bool showMenuFoldout = false;
+        private static string matEnterText;
+        private static string objEnterText;
         private int count;
         public static string debug;
         private bool settings;
         public static bool completeAnimatorLogic = true;
         public static bool createAnimationClips = true;
         public static bool ignorePreviousStates = true;
-        public static bool multiToggleGameObj = false;
+        public static bool autoCreateMenus = true;
 
         public enum CreationType
         {
@@ -74,15 +90,15 @@ namespace EZAvatar
             settings = EditorGUILayout.Foldout(settings, "Settings", true);
             if (settings)
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginVertical();
                 GUILayout.Space(8);
 
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
                 createAnimationClips = GUILayout.Toggle(createAnimationClips, "Create Animation Clips");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
-                multiToggleGameObj = GUILayout.Toggle(multiToggleGameObj, "Create Multi-Toggle GameObj Toggles");
+                autoCreateMenus = GUILayout.Toggle(autoCreateMenus, "Automatically Create Menus");
 
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndVertical();
             }
 
             if (GUILayout.Button("Run"))
@@ -91,13 +107,17 @@ namespace EZAvatar
                     AnimUtil.MakeAnimationClips(categories);
                 if (completeAnimatorLogic)
                 {
-                    if (Helper.HasFXLayer() == true)
+                    if (Helper.HasFXLayer(1) == true)
                     {
                         Algorithm.SetupMaterialToggles();
                         Algorithm.SetupGameObjectToggles();
                         Helper.DisplayCreationResults();
                     }
 
+                }
+                if (autoCreateMenus)
+                {
+                    Algorithm.CreateMenus();
                 }
                 ReInitializeUI();
             }
@@ -255,7 +275,7 @@ namespace EZAvatar
             }
         }
 
-        public void ReInitializeUI()
+        public static void ReInitializeUI()
         {
             matEnterText = "";
             objEnterText = "";

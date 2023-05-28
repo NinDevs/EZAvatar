@@ -12,23 +12,24 @@ namespace EZAvatar
     public class Helper
     {
         //Creates a new entry in our list which stores the category name, the reference to the foldout bool, and the list of materials.
-        public static void AddCategory(List<Category> dict, string categoryName, bool foldoutBool)
+        public static void AddCategory(List<Category> dict, string categoryName, CategoryType type)
         {
             Category category = new Category();
             category.name = categoryName;
-            category.foldout = foldoutBool;
+            category.foldout = true;
             category.slots = 0;
+            category.type = type;
             dict.Add(category);
         }
 
-        public static bool DoesCategoryExist(List<Category> categories, string categoryName)
+        public static bool DoesCategoryExist(List<Category> categories, string categoryName, CategoryType type)
         {
             bool result = new bool();
             foreach (var category in categories)
             {
-                if (category.name.Equals(categoryName))
+                if (category.name.Equals(categoryName) && category.type == type)
                     result = true;
-                else if (!category.name.Equals(categoryName))
+                else
                     result = false;
             }
             return result;
@@ -90,12 +91,17 @@ namespace EZAvatar
             Algorithm.statesCompleted = 0;
         }
 
-        public static bool HasFXLayer()
+        public static bool HasFXLayer(int arg)
         {
-            var controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
+            if (EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
+                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController != null)
+            {
+                EzAvatar.controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
 
-            if (controller == null)
+            }
+
+            if (EzAvatar.controller == null)
             {
                 EzAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
                 Debug.Log(EzAvatar.debug);
@@ -104,10 +110,27 @@ namespace EZAvatar
 
             else
             {
-                EzAvatar.debug = "FX Layer found! Proceeding . . . ";
-                Debug.Log(EzAvatar.debug);
+                if (arg != 0)
+                {
+                    EzAvatar.debug = "FX Layer found! Proceeding . . . ";
+                    Debug.Log(EzAvatar.debug);
+                }
+                else
+                {
+                    EzAvatar.debug = "FX Layer found!";
+                    Debug.Log(EzAvatar.debug);
+                }
                 return true;
             }
+        }
+
+        public static bool DoesMenuExist(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu menu)
+        {
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{menu.name}.asset"))
+                return true;
+
+            else
+                return false;
         }
     }
 
