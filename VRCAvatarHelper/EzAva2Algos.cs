@@ -168,18 +168,18 @@ namespace EZAvatar
                                 try
                                 {
                                     //Creates a transition that will start from the first state to the second state
-                                    AnimatorStateTransition idleToOnTransition = new AnimatorStateTransition();
-                                    idleToOnTransition.destinationState = statemachine.states[1].state;
-                                    ControllerUtil.ApplyTransitionSettings(idleToOnTransition, false, 0, false, 0);
-                                    idleToOnTransition.AddCondition(AnimatorConditionMode.If, 1, parametername);
-                                    statemachine.states[0].state.AddTransition(idleToOnTransition);
+                                    AnimatorStateTransition onToOffTransition = new AnimatorStateTransition();
+                                    onToOffTransition.destinationState = statemachine.states[1].state;
+                                    ControllerUtil.ApplyTransitionSettings(onToOffTransition, false, 0, false, 0);
+                                    onToOffTransition.AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
+                                    statemachine.states[0].state.AddTransition(onToOffTransition);
 
                                     //Creates a transition that will start from the second state to the first state
-                                    AnimatorStateTransition onToIdleTransition = new AnimatorStateTransition();
-                                    onToIdleTransition.destinationState = statemachine.states[0].state;
-                                    ControllerUtil.ApplyTransitionSettings(onToIdleTransition, false, 0, false, 0);
-                                    onToIdleTransition.AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
-                                    statemachine.states[1].state.AddTransition(onToIdleTransition);
+                                    AnimatorStateTransition offToOnTransition = new AnimatorStateTransition();
+                                    offToOnTransition.destinationState = statemachine.states[0].state;
+                                    ControllerUtil.ApplyTransitionSettings(offToOnTransition, false, 0, false, 0);
+                                    offToOnTransition.AddCondition(AnimatorConditionMode.If, 1, parametername);
+                                    statemachine.states[1].state.AddTransition(offToOnTransition);
                                 }
                                 catch { }
                             }
