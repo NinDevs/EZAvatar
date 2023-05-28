@@ -53,6 +53,7 @@ namespace EZAvatar
         }
 
         public static AnimatorController controller = null;
+        private Category temp = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
         private bool MenuFoldout;
@@ -103,23 +104,31 @@ namespace EZAvatar
 
             if (GUILayout.Button("Run"))
             {
-                if (createAnimationClips)
-                    AnimUtil.MakeAnimationClips(categories);
-                if (completeAnimatorLogic)
+                if (avatar != null)
                 {
-                    if (Helper.HasFXLayer(1) == true)
+                    if (createAnimationClips)
+                        AnimUtil.MakeAnimationClips(categories);
+                    if (completeAnimatorLogic)
                     {
-                        Algorithm.SetupMaterialToggles();
-                        Algorithm.SetupGameObjectToggles();
-                        Helper.DisplayCreationResults();
-                    }
+                        if (Helper.HasFXLayer(1) == true)
+                        {
+                            Algorithm.SetupMaterialToggles();
+                            Algorithm.SetupGameObjectToggles();
+                            Helper.DisplayCreationResults();
+                        }
 
+                    }
+                    if (autoCreateMenus)
+                    {
+                        Algorithm.CreateMenus();
+                    }
+                    ReInitializeUI();
                 }
-                if (autoCreateMenus)
+                else
                 {
-                    Algorithm.CreateMenus();
+                    debug = "Missing avatar object.";
+                    Debug.Log(debug);
                 }
-                ReInitializeUI();
             }
 
             //Creates the foldout which holds material categories
@@ -165,7 +174,15 @@ namespace EZAvatar
                 count++;
             }
 
-            //Creates a foldout for each category made, which also holds an add button that will add a field
+            var delete = false;
+        restart:
+
+            if (delete)
+            {
+                Helper.RemoveCategory(delete, temp);
+                delete = false;
+            }
+
             foreach (var category in categories.Where(x => x.type == CategoryType.Material))
             {
                 var name = category.name;
@@ -206,6 +223,13 @@ namespace EZAvatar
                         }
                     }
 
+                    if (GUILayout.Button("Del", GUILayout.Width(50)))
+                    {
+                        delete = true;
+                        temp = category;
+                        goto restart;
+                    }
+
                     EditorGUILayout.EndHorizontal();
                 }
                 EditorGUILayout.EndVertical();
@@ -238,6 +262,16 @@ namespace EZAvatar
             }
 
             //Creates a foldout for each category made, which also holds an add button that will add a field
+
+            var delete = false;
+        restart:
+
+            if (delete)
+            {
+                Helper.RemoveCategory(delete, temp);
+                delete = false;
+            }
+
             foreach (var category in categories.Where(x => x.type == CategoryType.GameObject))
             {
                 var name = category.name;
@@ -270,6 +304,13 @@ namespace EZAvatar
                         {
                             category.slots -= 1;
                         }
+                    }
+
+                    if (GUILayout.Button("Del", GUILayout.Width(50)))
+                    {
+                        delete = true;
+                        temp = category;
+                        goto restart;
                     }
 
                     EditorGUILayout.EndHorizontal();
