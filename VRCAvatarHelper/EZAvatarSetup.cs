@@ -51,7 +51,7 @@ namespace EZAvatar
 
             }
         }
-        // public static GameObject avatar;
+
         public static AnimatorController controller = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
@@ -182,7 +182,10 @@ namespace EZAvatar
                     {
                         Array.Resize(ref category.materials, category.slots);
                         EditorGUILayout.BeginVertical();
-                        category.materials[i] = (Material)EditorGUILayout.ObjectField($"Mat {i}", category.materials[i], typeof(Material), false);
+                        if (i == 0)
+                            category.materials[i] = (Material)EditorGUILayout.ObjectField("Default", category.materials[i], typeof(Material), false);
+                        else
+                            category.materials[i] = (Material)EditorGUILayout.ObjectField($"Mat {i}", category.materials[i], typeof(Material), false);
                         EditorGUILayout.EndVertical();
                     }
 
