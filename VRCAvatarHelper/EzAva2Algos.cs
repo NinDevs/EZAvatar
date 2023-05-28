@@ -387,6 +387,21 @@ namespace EZAvatar
                         var currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                         currentMenu.name = category.name;
                         int statecount = 0;
+                        //If the material toggle is a bool instead of int, we don't need to iterate through each state, we just need to make one control toggle
+                        if (ControllerUtil.GetParameterByName(controller, $"{currlayername}Mat").type == AnimatorControllerParameterType.Bool)
+                        {
+                            currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                            {
+                                name = currlayername,
+                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                                parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
+                                value = 1
+                            });
+                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                            AssetDatabase.Refresh();
+                            //Skip to next category
+                            continue;
+                        }
 
                         foreach (var state in states)
                         {
@@ -470,7 +485,7 @@ namespace EZAvatar
                 }
 
                 //Add new menus to the main menu if they are not already present
-                if (expressionsMenu.controls.Where(x => x.subMenu == ColorsMainMenu) != null)
+                if (expressionsMenu.controls.Where(x => x.subMenu == ColorsMainMenu) == null)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -480,7 +495,7 @@ namespace EZAvatar
                     });
                 }
 
-                if (expressionsMenu.controls.Where(x => x.subMenu == AccessoriesMainMenu) != null)
+                if (expressionsMenu.controls.Where(x => x.subMenu == AccessoriesMainMenu) == null)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
