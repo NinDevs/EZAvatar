@@ -45,7 +45,6 @@ namespace EZAvatar
                 if (previousAvatar != avatar)
                 {
                     previousAvatar = avatar;
-                    showMenuFoldout = Helper.HasFXLayer(0);
                     ReInitializeUI();
                 }
 
@@ -56,14 +55,9 @@ namespace EZAvatar
         private Category temp = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
-        private bool MenuFoldout;
         private static Vector2 matScrollView;
         private static Vector2 objScrollView;
-        private static Vector2 menuScrollView;
         public static List<Category> categories = new List<Category>();
-        private static List<bool> selectedLayerBools = new List<bool>();
-        public static List<AnimatorControllerLayer> selectedLayers = new List<AnimatorControllerLayer>();
-        private static bool showMenuFoldout = false;
         private static string matEnterText;
         private static string objEnterText;
         private int count;
@@ -174,8 +168,10 @@ namespace EZAvatar
                 count++;
             }
 
+            //Odd implementation, but you can't just remove items in a foreach loop while it is running - this is for the functionality of deleting categories
+            //We go to this region when the delete button is pressed, which will essentially delete the category we want and restart the loop, redisplaying everything else
             var delete = false;
-        restart:
+            restart:
 
             if (delete)
             {
@@ -264,7 +260,7 @@ namespace EZAvatar
             //Creates a foldout for each category made, which also holds an add button that will add a field
 
             var delete = false;
-        restart:
+            restart:
 
             if (delete)
             {

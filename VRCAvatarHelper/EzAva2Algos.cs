@@ -320,7 +320,6 @@ namespace EZAvatar
                 Debug.Log(EzAvatar.debug);
             }
 
-            // var layers = EzAvatar.selectedLayers;
             if (EzAvatar.autoCreateMenus)
             {
                 //Count for extra menus
@@ -397,6 +396,14 @@ namespace EZAvatar
                                 parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
                                 value = 1
                             });
+
+                            ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                            {
+                                name = currentMenu.name,
+                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                                subMenu = currentMenu
+                            });
+
                             AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
                             AssetDatabase.Refresh();
                             //Skip to next category
@@ -467,6 +474,8 @@ namespace EZAvatar
                             {
                                 var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                                 nextmain.name = "ColorsMore";
+                                AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{nextmain.name}.asset");
+
                                 ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                 {
                                     name = "More",
@@ -474,6 +483,7 @@ namespace EZAvatar
                                     subMenu = nextmain
                                 });
                                 AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
+                                AssetDatabase.Refresh();
                                 ColorsMainMenu = nextmain;
                             }
                         }
