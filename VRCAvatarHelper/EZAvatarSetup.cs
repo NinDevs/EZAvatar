@@ -9,14 +9,8 @@ using UnityEditor.Animations;
 
 namespace EZAvatar
 {
-    public enum CategoryType
-    {
-        Material,
-        GameObject
-    }
     public class Category
     {
-        public CategoryType type;
         public string name;
         public bool foldout;
         public int slots { get; internal set; }
@@ -55,12 +49,12 @@ namespace EZAvatar
         }
 
         public static AnimatorController controller = null;
-        private Category temp = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
         private static Vector2 matScrollView;
         private static Vector2 objScrollView;
-        public static List<Category> categories = new List<Category>();      
+        public static List<Category> objCategories = new List<Category>();
+        public static List<Category> matCategories = new List<Category>();
         private static string matEnterText;
         private static string objEnterText;
         private int count;
@@ -106,27 +100,25 @@ namespace EZAvatar
 
             if (GUILayout.Button("Run"))
             {
-                if (avatar != null && categories.Count() > 0)
+                if (avatar != null && objCategories.Count() + matCategories.Count() > 0)
                 {
                     if (createAnimationClips)
-                        AnimUtil.MakeAnimationClips(categories);
-                    if (completeAnimatorLogic)
+                        AnimUtil.MakeAnimationClips(ref matCategories, ref objCategories);
+                    if (completeAnimatorLogic) 
                     {
-                        if (controller != null)
-                        {
-                            Algorithm.SetupMaterialToggles();
-                            Algorithm.SetupGameObjectToggles();
+                        if (controller != null) {
+                            Algorithm.SetupMaterialToggles(ref matCategories);
+                            Algorithm.SetupGameObjectToggles(ref objCategories);
                         }
 
                     }
                     if (autoCreateMenus)
-                    {
-                        Algorithm.CreateMenus();
-                    }
+                        Algorithm.CreateMenus(ref matCategories, ref objCategories);
+                    
                     Helper.DisplayCreationResults();
                     ReInitializeUI();
                 }
-                else if (categories.Count() == 0)
+                else if (objCategories.Count() + matCategories.Count() == 0)
                 {
                     debug = "Must create categories in order to run.";
                     Debug.Log(debug);
@@ -163,14 +155,14 @@ namespace EZAvatar
             if (GUILayout.Button("Create category"))
             {
                 if (count == 0)
-                    Helper.AddCategory(categories, matEnterText, CategoryType.Material);
+                    Helper.AddCategory(matCategories, matEnterText);
 
                 //Prevents categories with the same names being made
                 if (count > 0)
                 {
-                    var exists = Helper.DoesCategoryExist(categories, matEnterText, CategoryType.Material);
+                    var exists = Helper.DoesCategoryExist(matCategories, matEnterText);
                     if (!exists)
-                        Helper.AddCategory(categories, matEnterText, CategoryType.Material);
+                        Helper.AddCategory(matCategories, matEnterText);
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
@@ -183,34 +175,27 @@ namespace EZAvatar
            
             //Odd implementation, but you can't just remove items in a foreach loop while it is running - this is for the functionality of deleting categories
             //We go to this region when the delete button is pressed, which will essentially delete the category we want and restart the loop, redisplaying everything else
-            var delete = false;
-            restart:
-            
-            if (delete) {
-                Helper.RemoveCategory(delete, temp);
-                delete = false;
-            }
 
-            foreach (var category in categories.Where(x => x.type == CategoryType.Material))
+            for (int i = 0; i < matCategories.Count(); i++)
             {
-                var name = category.name;
+                var name = matCategories[i].name;
                 EditorGUILayout.BeginVertical();
-                category.foldout = EditorGUILayout.Foldout(category.foldout, name, true);
+                matCategories[i].foldout = EditorGUILayout.Foldout(matCategories[i].foldout, name, true);
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
-                if (category.foldout)
+                if (matCategories[i].foldout)
                 {
-                    category.objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", category.objects[0], typeof(GameObject), true);
+                    matCategories[i].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].objects[0], typeof(GameObject), true);
 
                     //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
-                    for (int i = 0; i < category.slots; i++)
+                    for (int y = 0; y < matCategories[i].slots; y++)
                     {
-                        Array.Resize(ref category.materials, category.slots);
+                        Array.Resize(ref matCategories[i].materials, matCategories[i].slots);
                         EditorGUILayout.BeginVertical();
-                        if (i == 0)
-                            category.materials[i] = (Material)EditorGUILayout.ObjectField("Default", category.materials[i], typeof(Material), false);
+                        if (y == 0)
+                            matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField("Default", matCategories[i].materials[y], typeof(Material), false);
                         else
-                            category.materials[i] = (Material)EditorGUILayout.ObjectField($"Mat {i}", category.materials[i], typeof(Material), false);
+                            matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField($"Mat {y}", matCategories[i].materials[y], typeof(Material), false);
                         EditorGUILayout.EndVertical();
                     }
 
@@ -219,24 +204,15 @@ namespace EZAvatar
 
                     //Adds a button that increments an int, which is used to create new material fields
                     if (GUILayout.Button("+", GUILayout.Width(35)))
-                    {
-                        category.slots += 1;
-                    }
+                        matCategories[i].slots += 1;
 
-                    if (category.slots > 0)
-                    {
+                    if (matCategories[i].slots > 0) {
                         if (GUILayout.Button("-", GUILayout.Width(35)))
-                        {
-                            category.slots -= 1;
-                        }
+                            matCategories[i].slots -= 1;
                     }
 
                     if (GUILayout.Button("Del", GUILayout.Width(50)))
-                    {
-                        delete = true;
-                        temp = category;
-                        goto restart;
-                    }
+                        matCategories.Remove(matCategories[i]);
 
                     EditorGUILayout.EndHorizontal();
                 }                            
@@ -251,14 +227,14 @@ namespace EZAvatar
             if (GUILayout.Button("Create category"))
             {
                 if (count == 0)
-                    Helper.AddCategory(categories, objEnterText, CategoryType.GameObject);
+                    Helper.AddCategory(objCategories, objEnterText);
 
                 //Prevents categories with the same names being made
                 if (count > 0)
                 {
-                    var exists = Helper.DoesCategoryExist(categories, objEnterText, CategoryType.GameObject);
+                    var exists = Helper.DoesCategoryExist(objCategories, objEnterText);
                     if (!exists)
-                        Helper.AddCategory(categories, objEnterText, CategoryType.GameObject);
+                        Helper.AddCategory(objCategories, objEnterText);
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
@@ -271,29 +247,20 @@ namespace EZAvatar
 
             //Creates a foldout for each category made, which also holds an add button that will add a field
 
-            var delete = false;
-            restart:
-
-            if (delete)
+            for (int i = 0; i < objCategories.Count(); i++)
             {
-                Helper.RemoveCategory(delete, temp);
-                delete = false;
-            }
-
-            foreach (var category in categories.Where(x => x.type == CategoryType.GameObject))
-            {
-                var name = category.name;
+                var name = objCategories[i].name;
                 EditorGUILayout.BeginVertical();
-                category.foldout = EditorGUILayout.Foldout(category.foldout, name, true);
+                objCategories[i].foldout = EditorGUILayout.Foldout(objCategories[i].foldout, name, true);
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
-                if (category.foldout)
+                if (objCategories[i].foldout)
                 {
-                    for (int j = 0; j < category.slots; j++)
+                    for (int j = 0; j < objCategories[i].slots; j++)
                     {
-                        Array.Resize(ref category.objects, category.slots);
+                        Array.Resize(ref objCategories[i].objects, objCategories[i].slots);
                         EditorGUILayout.BeginVertical();
-                        category.objects[j] = (GameObject)EditorGUILayout.ObjectField($"Object {j}", category.objects[j], typeof(GameObject), true);
+                        objCategories[i].objects[j] = (GameObject)EditorGUILayout.ObjectField($"Object {j}", objCategories[i].objects[j], typeof(GameObject), true);
                         EditorGUILayout.EndVertical();
                     }
 
@@ -302,24 +269,15 @@ namespace EZAvatar
 
                     //Adds a button that increments an int, which is used to create new material fields
                     if (GUILayout.Button("+", GUILayout.Width(35)))
-                    {
-                        category.slots += 1;
-                    }
+                        objCategories[i].slots += 1;
 
-                    if (category.slots > 0)
-                    {
+                    if (objCategories[i].slots > 0) {
                         if (GUILayout.Button("-", GUILayout.Width(35)))
-                        {
-                            category.slots -= 1;
-                        }
+                            objCategories[i].slots -= 1;
                     }
 
                     if (GUILayout.Button("Del", GUILayout.Width(50)))
-                    {
-                        delete = true;
-                        temp = category;
-                        goto restart;
-                    }
+                        objCategories.Remove(objCategories[i]);
 
                     EditorGUILayout.EndHorizontal();
                 }                
@@ -331,7 +289,8 @@ namespace EZAvatar
         {
             matEnterText = "";
             objEnterText = "";
-            categories.Clear();           
+            matCategories.Clear();
+            objCategories.Clear();           
         }
         
     }

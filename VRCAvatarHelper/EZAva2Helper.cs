@@ -13,28 +13,27 @@ namespace EZAvatar
     public class Helper
     {
         //Creates a new entry in our list which stores the category name, the reference to the foldout bool, and the list of materials.
-        public static void AddCategory(List<Category> dict, string categoryName, CategoryType type)
+        public static void AddCategory(List<Category> dict, string categoryName)
         {
             Category category = new Category();
             category.name = categoryName;
             category.foldout = true;
             category.slots = 0;
-            category.type = type;
             dict.Add(category);
         }
 
         public static void RemoveCategory(bool execute, Category category)
         {
             if(execute)
-                EzAvatar.categories.Remove(category);
+                EzAvatar.objCategories.Remove(category);
         }
 
-        public static bool DoesCategoryExist(List<Category> categories, string categoryName, CategoryType type)
+        public static bool DoesCategoryExist(List<Category> categories, string categoryName)
         {
-            bool result = new bool();
-            foreach (var category in categories)
+            bool result = false;
+            for (int i = 0; i < categories.Count(); i++)
             {
-                if (category.name.Equals(categoryName) && category.type == type)
+                if (categories[i].name.Equals(categoryName))
                     result = true;
                 else
                     result = false;
@@ -81,7 +80,7 @@ namespace EZAvatar
 
         public static void DisplayCreationResults()
         {
-            EzAvatar.debug = $"Finished without errors. Created {Algorithm.layersCompleted} new layers, new {Algorithm.statesCompleted} states, and {Algorithm.menusCompleted} new menus. :)";
+            EzAvatar.debug = $"Finished without errors. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
             Debug.Log(EzAvatar.debug);
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
