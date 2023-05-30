@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +15,8 @@ namespace EZAvatar
     {
         public static int layersCompleted = 0;
         public static int statesCompleted = 0;
-
+        public static int menusCompleted = 0;
+        
         public static void SetupMaterialToggles()
         {
             var controller = EzAvatar.controller;
@@ -56,8 +59,7 @@ namespace EZAvatar
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
                         var statemachine = layer.stateMachine;
                         //Removes states if we are not ignoring previous states
-                        if (!EzAvatar.ignorePreviousStates && !cleared)
-                        {
+                        if (!EzAvatar.ignorePreviousStates && !cleared) {
                             ControllerUtil.RemoveStates(layer);
                             cleared = true;
                         }
@@ -126,7 +128,7 @@ namespace EZAvatar
                         //Adds new parameter to expressions menu if missing
                         if (expressionParametersMenu.FindParameter(parametername) == null)
                             VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
-
+                       
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null && statemachine.states.Count() < 2)
                         {
                             states[i] = statemachine.AddState(statename, new Vector3(360, i * 55));
@@ -186,15 +188,15 @@ namespace EZAvatar
                         }
                     }
                 }
-            }
+            }         
         }
 
         public static void SetupGameObjectToggles()
         {
             var controller = EzAvatar.controller;
-            var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
+            var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;          
 
-            foreach (var category in EzAvatar.categories.Where(x => x.type == CategoryType.GameObject))
+            foreach(var category in EzAvatar.categories.Where(x => x.type == CategoryType.GameObject))
             {
                 var layername = $"Toggle {category.name}";
                 var clips = category.animClips;
@@ -217,12 +219,12 @@ namespace EZAvatar
                         controller.AddLayer(layername);
                         layersCompleted++;
                     }
-
+                    
                     layer = ControllerUtil.GetLayerByName(controller, layername);
                     category.layer = layer;
                     ControllerUtil.SetLayerWeight(controller, layer, 1);
                     var statemachine = layer.stateMachine;
-
+                    
                     //Removes states if we are not ignoring previous states
                     if (!EzAvatar.ignorePreviousStates && !cleared)
                     {
@@ -233,7 +235,7 @@ namespace EZAvatar
                     //Adds bool parameter if there are only two anims we are working with
                     if (ControllerUtil.GetParameterByName(controller, parametername) == null)
                     {
-
+                        
                         controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
                         ControllerUtil.TurnOnParameterBool(controller, parametername);
                     }
@@ -241,12 +243,12 @@ namespace EZAvatar
                     //Adds new parameter to expressions menu if missing
                     if (expressionParametersMenu.FindParameter(parametername) == null)
                         VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
-
+                 
                     states[i] = statemachine.AddState(statename, new Vector3(360, i * 55));
                     statesCompleted++;
 
                     //When both states have been created
-                    if (states.Count() == 2 && i == clipcount - 1)
+                    if (states.Count() ==  2 && i == clipcount - 1)
                     {
                         try
                         {
@@ -287,8 +289,9 @@ namespace EZAvatar
 
             else
             {
-                AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+                AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
                 AccessoriesMainMenu.name = "Accessories";
+                menusCompleted++;
             }
 
             if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset"))
@@ -298,6 +301,7 @@ namespace EZAvatar
             {
                 ColorsMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 ColorsMainMenu.name = "Colors";
+                menusCompleted++;
             }
 
             var ExtraMenus = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu[1];
@@ -312,12 +316,13 @@ namespace EZAvatar
             {
                 var newExMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 newExMenu.name = $"{EzAvatar.avatar.name}Main";
-
+                         
                 AssetDatabase.CreateAsset(newExMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
                 EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu = newExMenu;
-
+                
                 EzAvatar.debug = "Missing expressions menu, created a new expressions menu...";
                 Debug.Log(EzAvatar.debug);
+                menusCompleted++;
             }
 
             if (EzAvatar.autoCreateMenus)
@@ -339,10 +344,10 @@ namespace EZAvatar
                     if (category.type == CategoryType.GameObject)
                     {
                         var currentMenu = AccessoriesMainMenu;
+                        var controlname = currlayername.Substring(7);
 
                         if (currentMenu.controls.Count() < 7)
                         {
-                            var controlname = currlayername.Substring(7);
                             currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                             {
                                 name = controlname,
@@ -355,12 +360,13 @@ namespace EZAvatar
                             {
                                 AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
                                 AssetDatabase.Refresh();
+                                menusCompleted++;
                             }
                         }
 
                         //Once we reach 7 controls, we will create a new page to store additional toggles
                         else if (currentMenu.controls.Count() == 7 && objCategoryCount < EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count())
-                        {
+                        {                         
                             ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                             ExtraMenus[index].name = nextAccessoryMenuName;
 
@@ -378,6 +384,25 @@ namespace EZAvatar
                             });
                             AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
                             currentMenu = ExtraMenus[index - 1];
+                            menusCompleted += 2;
+                        }
+                        //If there are no more things to add, enough to overflow and require a new menu, add to that 8th slot
+                        else
+                        {
+                            currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                            {
+                                name = controlname,
+                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                                parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = currlayername },
+                                value = 1
+                            });
+                            objCategoryCount++;
+                            if (objCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count())
+                            {
+                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                AssetDatabase.Refresh();
+                                menusCompleted++;
+                            }
                         }
                     }
                     //Creates menus for materials 
@@ -396,7 +421,7 @@ namespace EZAvatar
                                 parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
                                 value = 1
                             });
-
+                            
                             ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                             {
                                 name = currentMenu.name,
@@ -406,13 +431,14 @@ namespace EZAvatar
 
                             AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
                             AssetDatabase.Refresh();
+                            menusCompleted++;
                             //Skip to next category
                             continue;
                         }
-
+                                              
                         foreach (var state in states)
                         {
-
+                            
                             if (currentMenu.controls.Count() < 7)
                             {
                                 currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -421,14 +447,15 @@ namespace EZAvatar
                                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
                                     parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
                                     value = statecount
-                                });
+                                });                             
                                 statecount++;
-
+                                
                                 //If there are no more states to iterate through for this category, that means the menu is finished, and we should export it and add to the main menu.
                                 if (statecount == states.Count())
                                 {
                                     AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
                                     AssetDatabase.Refresh();
+                                    menusCompleted++;
                                     ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                     {
                                         name = currentMenu.name,
@@ -438,10 +465,10 @@ namespace EZAvatar
                                 }
 
                             }
-
+                            
                             //If we reach the end of the current menu and there are still more states to consider
                             else if (currentMenu.controls.Count() == 7 && statecount < states.Count())
-                            {
+                            {                              
                                 ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                                 ExtraMenus[index].name = nextColorMenuName;
 
@@ -466,8 +493,9 @@ namespace EZAvatar
                                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                                     subMenu = currentMenu
                                 });
-
+                                
                                 currentMenu = ExtraMenus[index - 1];
+                                menusCompleted += 2;
                             }
 
                             if (ColorsMainMenu.controls.Count() == 7 && ColorsMainMenu.controls.Count() < EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count())
@@ -475,7 +503,7 @@ namespace EZAvatar
                                 var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                                 nextmain.name = "ColorsMore";
                                 AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{nextmain.name}.asset");
-
+                                
                                 ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                 {
                                     name = "More",
@@ -485,17 +513,20 @@ namespace EZAvatar
                                 AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
                                 AssetDatabase.Refresh();
                                 ColorsMainMenu = nextmain;
+                                menusCompleted++;
                             }
                         }
-
+                        
                         colCategoryCount++;
-                        if (colCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count())
+                        if (colCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count()) {
                             AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
+                            menusCompleted++;
+                        }
                     }
                 }
-
+                
                 //Add new menus to the main menu if they are not already present
-                if (expressionsMenu.controls.Where(x => x.subMenu == ColorsMainMenu) == null)
+                if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu.name) == null)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -505,7 +536,7 @@ namespace EZAvatar
                     });
                 }
 
-                if (expressionsMenu.controls.Where(x => x.subMenu == AccessoriesMainMenu) == null)
+                if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu.name) == null)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -514,10 +545,12 @@ namespace EZAvatar
                         subMenu = AccessoriesMainMenu
                     });
                 }
-
-                AssetDatabase.SaveAssets();
+                 
+                AssetDatabase.SaveAssets();                
                 AssetDatabase.Refresh();
-            }
+            }         
         }
     }
 }
+
+#endif

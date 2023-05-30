@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿#if UNITY_EDITOR
+
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -90,7 +92,7 @@ namespace EZAvatar
             {
                 foreach (var state in statemachine.states)
                     statemachine.RemoveState(state.state);
-            }
+            }         
         }
 
         public static void ChangeParameterToInt(AnimatorController controller, AnimatorControllerLayer layer, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters expressionParametersMenu, string parametername)
@@ -170,7 +172,7 @@ namespace EZAvatar
                         //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
                         //(just adding one material as a toggle where the layer already exists and has states).
                         if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().
-                            Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController
+                            Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController 
                             as AnimatorController, category.name) == true)
                             allowed = true;
 
@@ -188,13 +190,13 @@ namespace EZAvatar
                             {
                                 EzAvatar.debug = "Mesh object was not found.";
                                 Debug.Log(EzAvatar.debug);
+                                return;
                             }
                             var index = 0;
                             SerializedObject matslotref = new SerializedObject(render);
 
                             /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
-                            Of any of the materials in the category, which will allow us to find the proper element index of the material in which we will keyframe to be replaced to
-                            another.*/
+                            Of any of the materials in the category, which will allow us to find the proper element index of the material for reference.*/
                             for (int i = 0; i < matslotref.FindProperty("m_Materials.Array").arraySize; i++)
                             {
                                 var material = render.sharedMaterials[i];
@@ -233,8 +235,8 @@ namespace EZAvatar
                                 ExportClip(clip, gameObj.name);
                             }
                         }
-                    }
-
+                    } 
+                    
                     if (category.type == CategoryType.GameObject)
                     {
                         var gameObj = category.objects;
@@ -255,9 +257,9 @@ namespace EZAvatar
 
                             for (int i = 0; i < gameObj.Count(); i++)
                             {
-
-                                var path = gameObj[i].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
-
+                                
+                                var path = gameObj[i].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);   
+                                
                                 //Creates curves/keys for gameobject active, per object
                                 var onCurve = new AnimationCurve();
                                 onCurve.AddKey(0, 1);
@@ -270,7 +272,7 @@ namespace EZAvatar
                                 offCurve.AddKey(1 / onClip.frameRate, 0);
                                 offClip.SetCurve(path, typeof(GameObject), "m_IsActive", offCurve);
 
-                            }
+                            }                          
                             //Creates the clip
                             if (gameObj.Count() == 1)
                             {
@@ -278,11 +280,11 @@ namespace EZAvatar
                                 category.animClips.Add(onClip);
                                 ExportClip(onClip, gameObj[0].name);
 
-                                offClip.name = $"{gameObj[0].name}OFF";
+                                offClip.name = $"{gameObj[0].name}OFF";                               
                                 category.animClips.Add(offClip);
                                 ExportClip(offClip, gameObj[0].name);
                             }
-
+                            
                             else
                             {
                                 category.animClips.Add(onClip);
@@ -292,7 +294,7 @@ namespace EZAvatar
                                 category.animClips.Add(offClip);
                                 ExportClip(offClip, "Multi-Toggles");
                             }
-
+                            
                         }
                     }
                 }
@@ -300,3 +302,5 @@ namespace EZAvatar
         }
     }
 }
+
+#endif

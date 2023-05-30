@@ -1,3 +1,5 @@
+#if UNITY_EDITOR
+
 using UnityEngine;
 using UnityEditor;
 using System;
@@ -45,7 +47,8 @@ namespace EZAvatar
                 if (previousAvatar != avatar)
                 {
                     previousAvatar = avatar;
-                    ReInitializeUI();
+                    Helper.HasFXLayer(0);
+                    ReInitializeUI();               
                 }
 
             }
@@ -57,7 +60,7 @@ namespace EZAvatar
         private bool GameObjFoldout;
         private static Vector2 matScrollView;
         private static Vector2 objScrollView;
-        public static List<Category> categories = new List<Category>();
+        public static List<Category> categories = new List<Category>();      
         private static string matEnterText;
         private static string objEnterText;
         private int count;
@@ -65,8 +68,13 @@ namespace EZAvatar
         private bool settings;
         public static bool completeAnimatorLogic = true;
         public static bool createAnimationClips = true;
-        public static bool ignorePreviousStates = true;
+        public static bool ignorePreviousStates = true;       
         public static bool autoCreateMenus = true;
+
+        private static GUIStyle style = new GUIStyle(EditorStyles.textField)
+        {
+            wordWrap = true
+        };
 
         public enum CreationType
         {
@@ -78,7 +86,7 @@ namespace EZAvatar
         {
             //Sets up a gameobject slot within the editor window.
             avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
-            EditorGUILayout.LabelField(debug);
+            EditorGUILayout.LabelField(debug);             
             EditorGUILayout.BeginVertical();
 
             //Creates the foldout which holds settings
@@ -98,17 +106,16 @@ namespace EZAvatar
 
             if (GUILayout.Button("Run"))
             {
-                if (avatar != null)
+                if (avatar != null && categories.Count() > 0)
                 {
                     if (createAnimationClips)
                         AnimUtil.MakeAnimationClips(categories);
                     if (completeAnimatorLogic)
                     {
-                        if (Helper.HasFXLayer(1) == true)
+                        if (controller != null)
                         {
                             Algorithm.SetupMaterialToggles();
                             Algorithm.SetupGameObjectToggles();
-                            Helper.DisplayCreationResults();
                         }
 
                     }
@@ -116,7 +123,13 @@ namespace EZAvatar
                     {
                         Algorithm.CreateMenus();
                     }
+                    Helper.DisplayCreationResults();
                     ReInitializeUI();
+                }
+                else if (categories.Count() == 0)
+                {
+                    debug = "Must create categories in order to run.";
+                    Debug.Log(debug);
                 }
                 else
                 {
@@ -132,7 +145,7 @@ namespace EZAvatar
                 matScrollView = EditorGUILayout.BeginScrollView(matScrollView);
                 DrawMaterialUI();
                 EditorGUILayout.EndScrollView();
-            }
+            }                      
             GameObjFoldout = EditorGUILayout.Foldout(GameObjFoldout, "GameObject", true);
             if (GameObjFoldout)
             {
@@ -144,8 +157,8 @@ namespace EZAvatar
         }
 
         void DrawMaterialUI()
-        {
-            matEnterText = EditorGUILayout.TextField(matEnterText);
+        {           
+            matEnterText = EditorGUILayout.TextField(matEnterText, style);
 
             if (GUILayout.Button("Create category"))
             {
@@ -167,14 +180,13 @@ namespace EZAvatar
                 matEnterText = "";
                 count++;
             }
-
+           
             //Odd implementation, but you can't just remove items in a foreach loop while it is running - this is for the functionality of deleting categories
             //We go to this region when the delete button is pressed, which will essentially delete the category we want and restart the loop, redisplaying everything else
             var delete = false;
             restart:
-
-            if (delete)
-            {
+            
+            if (delete) {
                 Helper.RemoveCategory(delete, temp);
                 delete = false;
             }
@@ -227,14 +239,14 @@ namespace EZAvatar
                     }
 
                     EditorGUILayout.EndHorizontal();
-                }
+                }                            
                 EditorGUILayout.EndVertical();
-            }
+            }           
         }
 
         void DrawGameObjUI()
-        {
-            objEnterText = EditorGUILayout.TextField(objEnterText);
+        {           
+            objEnterText = EditorGUILayout.TextField(objEnterText, style);
 
             if (GUILayout.Button("Create category"))
             {
@@ -310,19 +322,19 @@ namespace EZAvatar
                     }
 
                     EditorGUILayout.EndHorizontal();
-                }
+                }                
                 EditorGUILayout.EndVertical();
             }
         }
-
+     
         public static void ReInitializeUI()
         {
             matEnterText = "";
             objEnterText = "";
-            categories.Clear();
+            categories.Clear();           
         }
-
+        
     }
 }
 
-
+#endif 
