@@ -188,7 +188,9 @@ namespace EZAvatar
                         }
                     }
                 }
-            }         
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         public static void SetupGameObjectToggles()
@@ -234,8 +236,7 @@ namespace EZAvatar
 
                     //Adds bool parameter if there are only two anims we are working with
                     if (ControllerUtil.GetParameterByName(controller, parametername) == null)
-                    {
-                        
+                    {                     
                         controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
                         ControllerUtil.TurnOnParameterBool(controller, parametername);
                     }
@@ -272,6 +273,8 @@ namespace EZAvatar
                     }
                 }
             }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         public static void CreateMenus()
@@ -282,9 +285,12 @@ namespace EZAvatar
             VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu AccessoriesMainMenu = null;
             VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu ColorsMainMenu = null;
 
+            var mCategoryCount = EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count();
+            var oCategoryCount = EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count();
+
             //If an accessories/colors menu already exists for this avatar, we load that menu and add to it.
             //Otherwise we create new menus.
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset"))
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0)
                 AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
             else
@@ -294,7 +300,7 @@ namespace EZAvatar
                 menusCompleted++;
             }
 
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset"))
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0)
                 ColorsMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
             else
@@ -345,6 +351,9 @@ namespace EZAvatar
                     {
                         var currentMenu = AccessoriesMainMenu;
                         var controlname = currlayername.Substring(7);
+                        
+                        if (Helper.DoesMenuExist(currentMenu, false))
+                            currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
                         if (currentMenu.controls.Count() < 7)
                         {
@@ -356,16 +365,20 @@ namespace EZAvatar
                                 value = 1
                             });
                             objCategoryCount++;
-                            if (objCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count())
+                            if (objCategoryCount == oCategoryCount)
                             {
-                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                if (!Helper.DoesMenuExist(currentMenu, false)) {
+                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                    menusCompleted++;
+                                }
+
+                                AssetDatabase.SaveAssets();
                                 AssetDatabase.Refresh();
-                                menusCompleted++;
                             }
                         }
 
                         //Once we reach 7 controls, we will create a new page to store additional toggles
-                        else if (currentMenu.controls.Count() == 7 && objCategoryCount < EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count())
+                        else if (currentMenu.controls.Count() == 7 && objCategoryCount < oCategoryCount)
                         {                         
                             ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                             ExtraMenus[index].name = nextAccessoryMenuName;
@@ -374,7 +387,13 @@ namespace EZAvatar
                             Array.Resize(ref ExtraMenus, index + 1);
                             nextAccessoryMenuName = $"AccessoriesMore{accnamecount}";
                             accnamecount++;
-                            AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                            
+                            if(!Helper.DoesMenuExist(ExtraMenus[index - 1], true)) {
+                                AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                                menusCompleted++;
+                            }
+                            else
+                                ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
                             currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                             {
@@ -382,9 +401,12 @@ namespace EZAvatar
                                 type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                                 subMenu = ExtraMenus[index - 1]
                             });
-                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                            
+                            if (!Helper.DoesMenuExist(currentMenu, false)) {
+                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                menusCompleted++;
+                            }
                             currentMenu = ExtraMenus[index - 1];
-                            menusCompleted += 2;
                         }
                         //If there are no more things to add, enough to overflow and require a new menu, add to that 8th slot
                         else
@@ -397,20 +419,28 @@ namespace EZAvatar
                                 value = 1
                             });
                             objCategoryCount++;
-                            if (objCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.GameObject).Count())
+                            if (objCategoryCount == oCategoryCount)
                             {
-                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                if (!Helper.DoesMenuExist(currentMenu, false)) {
+                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                    menusCompleted++;
+                                }
+                                
+                                AssetDatabase.SaveAssets();
                                 AssetDatabase.Refresh();
-                                menusCompleted++;
                             }
                         }
                     }
                     //Creates menus for materials 
                     else if (category.type == CategoryType.Material)
                     {
+                        int statecount = 0;
+
                         var currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                         currentMenu.name = category.name;
-                        int statecount = 0;
+                        if (Helper.DoesMenuExist(currentMenu, false))
+                            currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+
                         //If the material toggle is a bool instead of int, we don't need to iterate through each state, we just need to make one control toggle
                         if (ControllerUtil.GetParameterByName(controller, $"{currlayername}Mat").type == AnimatorControllerParameterType.Bool)
                         {
@@ -429,9 +459,10 @@ namespace EZAvatar
                                 subMenu = currentMenu
                             });
 
-                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
-                            AssetDatabase.Refresh();
-                            menusCompleted++;
+                            if(!Helper.DoesMenuExist(currentMenu, false)) {
+                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                menusCompleted++;
+                            }
                             //Skip to next category
                             continue;
                         }
@@ -453,15 +484,18 @@ namespace EZAvatar
                                 //If there are no more states to iterate through for this category, that means the menu is finished, and we should export it and add to the main menu.
                                 if (statecount == states.Count())
                                 {
-                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
-                                    AssetDatabase.Refresh();
-                                    menusCompleted++;
+                                    if(!Helper.DoesMenuExist(currentMenu, false)) {
+                                        AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                        menusCompleted++;
+                                    }
+                                                            
                                     ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                     {
                                         name = currentMenu.name,
                                         type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                                         subMenu = currentMenu
                                     });
+                                    AssetDatabase.SaveAssets();
                                 }
 
                             }
@@ -476,7 +510,14 @@ namespace EZAvatar
                                 Array.Resize(ref ExtraMenus, index + 1);
                                 nextColorMenuName = $"{currlayername}More{colornamecount}";
                                 colornamecount++;
-                                AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                                
+                                if(!Helper.DoesMenuExist(ExtraMenus[index - 1], true)) {
+                                    AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                                    menusCompleted++;
+                                }
+                                    
+                                else
+                                    ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
                                 currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                 {
@@ -485,7 +526,11 @@ namespace EZAvatar
                                     subMenu = ExtraMenus[index - 1]
                                 });
                                 //Export our current menu
-                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                if (!Helper.DoesMenuExist(currentMenu, false)) {
+                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                                    menusCompleted++;
+                                }
+
                                 //Add this current full menu to the main menu
                                 ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                 {
@@ -495,38 +540,47 @@ namespace EZAvatar
                                 });
                                 
                                 currentMenu = ExtraMenus[index - 1];
-                                menusCompleted += 2;
                             }
 
                             if (ColorsMainMenu.controls.Count() == 7 && ColorsMainMenu.controls.Count() < EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count())
                             {
                                 var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                                 nextmain.name = "ColorsMore";
-                                AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{nextmain.name}.asset");
                                 
+                                if (!Helper.DoesMenuExist(nextmain, false)) {
+                                    AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{nextmain.name}.asset");
+                                    menusCompleted++;
+                                }
+                                else
+                                    nextmain = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{nextmain.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+
                                 ColorsMainMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                                 {
                                     name = "More",
                                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                                     subMenu = nextmain
                                 });
-                                AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
-                                AssetDatabase.Refresh();
+                                
+                                if (!Helper.DoesMenuExist(ColorsMainMenu, false)) {
+                                    AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
+                                    menusCompleted++;
+                                }                              
                                 ColorsMainMenu = nextmain;
-                                menusCompleted++;
                             }
                         }
                         
                         colCategoryCount++;
                         if (colCategoryCount == EzAvatar.categories.Where(x => x.type == CategoryType.Material).Count()) {
-                            AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
-                            menusCompleted++;
+                            if(!Helper.DoesMenuExist(ColorsMainMenu, false)) {
+                                AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ColorsMainMenu.name}.asset");
+                                menusCompleted++;
+                            }                                                        
                         }
                     }
                 }
                 
                 //Add new menus to the main menu if they are not already present
-                if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu.name) == null)
+                if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu.name) == null && mCategoryCount > 0)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -536,7 +590,7 @@ namespace EZAvatar
                     });
                 }
 
-                if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu.name) == null)
+                if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu.name) == null && oCategoryCount > 0)
                 {
                     expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -545,7 +599,13 @@ namespace EZAvatar
                         subMenu = AccessoriesMainMenu
                     });
                 }
-                 
+
+                //Destroys unused menus
+                if (mCategoryCount == 0 && ColorsMainMenu.controls.Count() == 0)
+                    UnityEngine.Object.DestroyImmediate(ColorsMainMenu);
+                if (oCategoryCount == 0 && AccessoriesMainMenu.controls.Count() == 0)
+                    UnityEngine.Object.DestroyImmediate(AccessoriesMainMenu);
+
                 AssetDatabase.SaveAssets();                
                 AssetDatabase.Refresh();
             }         

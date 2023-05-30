@@ -71,10 +71,10 @@ namespace EZAvatar
         public static bool ignorePreviousStates = true;       
         public static bool autoCreateMenus = true;
 
-        private static GUIStyle style = new GUIStyle(EditorStyles.textField)
+      /*  private static GUIStyle style = new GUIStyle(EditorStyles.textField)
         {
             wordWrap = true
-        };
+        };*/
 
         public enum CreationType
         {
@@ -158,7 +158,7 @@ namespace EZAvatar
 
         void DrawMaterialUI()
         {           
-            matEnterText = EditorGUILayout.TextField(matEnterText, style);
+            matEnterText = EditorGUILayout.TextField(matEnterText);
 
             if (GUILayout.Button("Create category"))
             {
@@ -246,7 +246,7 @@ namespace EZAvatar
 
         void DrawGameObjUI()
         {           
-            objEnterText = EditorGUILayout.TextField(objEnterText, style);
+            objEnterText = EditorGUILayout.TextField(objEnterText);
 
             if (GUILayout.Button("Create category"))
             {
