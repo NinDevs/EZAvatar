@@ -428,6 +428,14 @@ namespace EZAvatar
                         }
 
                         currentAccessoryMain = ExtraMenus[index - 1];
+
+                        currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        {
+                            name = controlname,
+                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = currlayername },
+                            value = 1
+                        });
                     }
 
                     if (i == oCategoryCount - 1)
