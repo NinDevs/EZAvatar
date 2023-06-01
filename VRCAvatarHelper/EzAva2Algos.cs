@@ -16,6 +16,7 @@ namespace EZAvatar
         public static int layersCompleted = 0;
         public static int statesCompleted = 0;
         public static int menusCompleted = 0;
+        public static float elaspedTime = 0.0f;
         
         public static void SetupMaterialToggles(ref List<Category> matCategories)
         {
@@ -319,8 +320,10 @@ namespace EZAvatar
                 menusCompleted++;
             }
 
+            //Instantiate array that will hold extra menus that are created
             var ExtraMenus = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu[1];
          
+            //Creates expression menu and add it to the avatar descriptor if it is missing
             if (expressionsMenu == null)
             {
                 var newExMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
@@ -338,7 +341,7 @@ namespace EZAvatar
                 AssetDatabase.Refresh();
             }
 
-            //Add new menus to the main menu if they are not already present
+            //Add these newly created menus (accessory/colors) to the main menu if they are not already present
             if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu.name) == null && mCategoryCount > 0)
             {
                 expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -378,10 +381,9 @@ namespace EZAvatar
                 {
                     var currlayername = objCategories[i].layer.name;
                     var states = objCategories[i].layer.stateMachine.states;
-                    //Creates menus for toggles 
                     var controlname = currlayername.Substring(7);
                 
-                    //Add toggle controls to menu
+                    //Add toggle controls to the current menu until it reaches 8, in which the last control will be a new menu to continue iterating
                     if (currentAccessoryMain.controls.Count() < 8)
                     {
                         currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -437,7 +439,7 @@ namespace EZAvatar
                             value = 1
                         });
                     }
-
+                    //When we have reached the end
                     if (i == oCategoryCount - 1)
                     {                       
                         AssetDatabase.SaveAssets();
@@ -494,6 +496,7 @@ namespace EZAvatar
 
                     for (int y = 0; y < states.Count(); y++)
                     {
+                        //Add new control per state in the current layer, until we reach 8 controls, in which the last one will be an additional menu for further iteration
                         if (currentMenu.controls.Count() < 8)
                         {
                             currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -524,7 +527,7 @@ namespace EZAvatar
 
                         }
 
-                        //If we reach the end of the current menu and there are still more states to consider
+                        //If we reach the end of the current menu and there are still more states to consider, create a new menu
                         else if (currentMenu.controls.Count() == 8 && y + 1 <= states.Count())
                         {
                             ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
@@ -568,6 +571,7 @@ namespace EZAvatar
                             currentMenu = ExtraMenus[index - 1];
                         }                     
 
+                        //If the main menu reaches 8 control limit and there are more layers to go through, we create a new main menu to continue iterating
                         if (currentColorMain.controls.Count() == 8 && i + 1 <= mCategoryCount)
                         {
                             var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
@@ -596,7 +600,7 @@ namespace EZAvatar
                             AssetDatabase.SaveAssets();
                         }
                     }
-
+                    //When we have reached the end
                     if (i == mCategoryCount - 1) {
                         AssetDatabase.Refresh();
 

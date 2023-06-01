@@ -22,7 +22,7 @@ namespace EZAvatar
 
     public class EzAvatar : EditorWindow
     {
-        [MenuItem("Nin/Utilities/EzAvatar")]
+        [MenuItem("Nin/Utilities/EZAvatar")]
 
         static void Init()
         {
@@ -80,6 +80,7 @@ namespace EZAvatar
         {
             //Sets up a gameobject slot within the editor window.
             avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
+            //Label field to display debug results at the top of this editor window, easily viewable by the user. Debug text is changed over execution
             EditorGUILayout.LabelField(debug);             
             EditorGUILayout.BeginVertical();
 
@@ -100,8 +101,11 @@ namespace EZAvatar
 
             if (GUILayout.Button("Run"))
             {
+
                 if (avatar != null && objCategories.Count() + matCategories.Count() > 0)
                 {
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+
                     if (createAnimationClips)
                         AnimUtil.MakeAnimationClips(ref matCategories, ref objCategories);
                     if (completeAnimatorLogic) 
@@ -114,8 +118,11 @@ namespace EZAvatar
                     }
                     if (autoCreateMenus)
                         Algorithm.CreateMenus(ref matCategories, ref objCategories);
-                    
+
+                    watch.Stop();
+                    Algorithm.elaspedTime = watch.ElapsedMilliseconds;
                     Helper.DisplayCreationResults();
+                   
                     ReInitializeUI();
                 }
                 else if (objCategories.Count() + matCategories.Count() == 0)
