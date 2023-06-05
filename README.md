@@ -12,13 +12,17 @@ Current functionality of the script includes:
   
   Automatically creates animator layers, states, transitions, and parameters
   
-  - _Supports adding on toggles to existing layers_
+  - _Supports adding on toggles to existing layers (simply create a category with the same name as existing layer)_
+
+  ![image](https://github.com/NinDevs/EZAvatar/assets/109317890/7ca9a40e-3bfb-4c26-aebe-a0175c9b0548)
   
 - ### Option to automatically generate simple menus on execution
   
   Creates simple VRC expression menus based on the toggles that are created. 
   These are automatically added to the current avatar main menu, but it will create a new main menu
   if none are found.
+
+  ![image](https://github.com/NinDevs/EZAvatar/assets/109317890/6102eb59-dec4-486e-bb9d-831ec110a9d8)
 
 ## How to Use:
 
