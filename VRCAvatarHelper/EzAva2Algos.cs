@@ -1,7 +1,6 @@
 ﻿#if UNITY_EDITOR
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,7 +15,7 @@ namespace EZAvatar
         public static int layersCompleted = 0;
         public static int statesCompleted = 0;
         public static int menusCompleted = 0;
-        public static float elaspedTime = 0.0f;
+        public static double elaspedTime = 0;
         
         public static void SetupMaterialToggles(ref List<Category> matCategories)
         {

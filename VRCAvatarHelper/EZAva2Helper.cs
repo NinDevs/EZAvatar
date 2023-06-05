@@ -9,7 +9,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 
 namespace EZAvatar
-{       
+{
     public class Helper
     {
         //Creates a new entry in our list which stores the category name, the reference to the foldout bool, and the list of materials.
@@ -20,12 +20,6 @@ namespace EZAvatar
             category.foldout = true;
             category.slots = 0;
             dict.Add(category);
-        }
-
-        public static void RemoveCategory(bool execute, Category category)
-        {
-            if(execute)
-                EzAvatar.objCategories.Remove(category);
         }
 
         public static bool DoesCategoryExist(List<Category> categories, string categoryName)
@@ -80,11 +74,12 @@ namespace EZAvatar
 
         public static void DisplayCreationResults()
         {
-            EzAvatar.debug = $"Finished without errors. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
+            EzAvatar.debug = $"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
             Debug.Log(EzAvatar.debug);
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
             Algorithm.menusCompleted = 0;
+            Algorithm.elaspedTime = 0;
         }
 
         public static bool HasFXLayer(int arg)
