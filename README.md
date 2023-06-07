@@ -66,7 +66,8 @@ These categories help you organize toggles/swaps of different kinds, these are t
   
   Use + and - buttons to add or remove gameobject slots, and Del to delete that category.
 
-  ### Once finished setting up:
+  ## Once finished setting up:
+  ### [Usage example](https://streamable.com/b6q1cr)
   Press run! And watch as the script will magically perform the bulk of these tasks :)
   
 
