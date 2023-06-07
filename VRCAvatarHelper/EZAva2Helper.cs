@@ -115,12 +115,12 @@ namespace EZAvatar
             }
         }
 
-        public static bool DoesMenuExist(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu menu, bool isSub)
+        public static bool DoesMenuExist(string menu, bool isSub)
         {
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{menu.name}.asset") && !isSub)
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{menu}.asset") && !isSub)
                 return true;
             
-            else if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{menu.name}.asset") && isSub)
+            else if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{menu}.asset") && isSub)
                 return true;
 
             else

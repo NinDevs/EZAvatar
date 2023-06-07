@@ -22,7 +22,13 @@ namespace EZAvatar
 
     public class EzAvatar : EditorWindow
     {
-        [MenuItem("Nin/EZAvatar")]
+        [MenuItem("Nin/EZAvatar/Open GitHub")]
+        static void OpenGitHub()
+        {
+            Application.OpenURL("https://github.com/NinDevs/EZAvatar");
+        }
+
+        [MenuItem("Nin/EZAvatar/3.0 Helper")]
 
         static void Init()
         {
@@ -298,7 +304,7 @@ namespace EZAvatar
             objEnterText = "";
             matCategories.Clear();
             objCategories.Clear();           
-        }
+        }      
     }
 }
 
