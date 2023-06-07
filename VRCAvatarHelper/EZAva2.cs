@@ -69,12 +69,6 @@ namespace EZAvatar
         public static bool createAnimationClips = true;
         public static bool ignorePreviousStates = true;       
         public static bool autoCreateMenus = true;
-        public static string Version = "v1.2.1";
-
-        /*  private static GUIStyle style = new GUIStyle(EditorStyles.textField)
-          {
-              wordWrap = true
-          };*/
 
         public enum CreationType
         {
