@@ -126,7 +126,6 @@ namespace EZAvatar
             else
                 return false;
         }
-
     }
   
     public class VRCUtil
@@ -154,6 +153,31 @@ namespace EZAvatar
                     parameters.DeleteArrayElementAtIndex(i); 
             }
             parameters_S.ApplyModifiedProperties();
+        }
+
+        public static void SwitchedParameter(ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu menu, ref AnimatorControllerLayer layer, List<AnimatorState> states)
+        {
+            int count = 0;
+            menu.controls.Clear();
+            foreach (var state in layer.stateMachine.states)
+            {
+                foreach (var newstate in states)
+                {
+                    if (state.state != newstate)
+                    {
+                        var control = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        {
+                            name = $"{state.state.name}",
+                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{layer.name}Mat" },
+                            value = count
+                        };
+                        menu.controls.Add(control);
+                        count++;
+                    }
+                }               
+            }
+            AssetDatabase.SaveAssets();
         }
     }
 }

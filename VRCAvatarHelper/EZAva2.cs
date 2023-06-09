@@ -18,6 +18,8 @@ namespace EZAvatar
         public GameObject[] objects = new GameObject[1];
         public List<AnimationClip> animClips = new List<AnimationClip>();
         public AnimatorControllerLayer layer = null;
+        public List<AnimatorState> states = new List<AnimatorState>();
+        public bool switched = false;
     }
 
     public class EzAvatar : EditorWindow
@@ -121,9 +123,9 @@ namespace EZAvatar
 
                     watch.Stop();
                     Algorithm.elaspedTime = watch.Elapsed.TotalSeconds;
-                    Helper.DisplayCreationResults();
-                   
+                    Helper.DisplayCreationResults();                  
                     ReInitializeUI();
+                    SceneSaver.SaveScene();
                 }
                 else if (objCategories.Count() + matCategories.Count() == 0)
                 {

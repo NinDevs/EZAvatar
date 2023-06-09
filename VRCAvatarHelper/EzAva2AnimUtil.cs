@@ -11,7 +11,7 @@ namespace EZAvatar
 {
     public class ControllerUtil
     {
-        public static AnimatorControllerLayer GetLayerByName(AnimatorController ac, string name)
+        public static AnimatorControllerLayer GetLayerByName(ref AnimatorController ac, string name)
         {
             foreach (var currLayer in ac.layers)
             {
@@ -170,9 +170,7 @@ namespace EZAvatar
 
                     //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
                     //(just adding one material as a toggle where the layer already exists and has states).
-                    if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().
-                        Where(x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController
-                        as AnimatorController, matCategories[i].name) == true)
+                    if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.controller, matCategories[i].name) == true)
                         allowed = true;
 
                     if (materials.Count() < 2 && !allowed)
@@ -298,6 +296,11 @@ namespace EZAvatar
                     }
                 }                 
             }
+        }
+
+        public static AnimationClip LoadAnimClip(string clipname, string meshName)
+        {
+           return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clipname}.anim", typeof(AnimationClip));
         }
     }
 }
