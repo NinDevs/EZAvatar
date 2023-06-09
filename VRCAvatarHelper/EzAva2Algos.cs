@@ -610,7 +610,7 @@ namespace EZAvatar
                                     subMenu = currentMenu
                                 };
 
-                                if (!currentColorMain.controls.Contains(maincontrol))
+                                if (currentColorMain.controls.Where(x => x.subMenu.name == currentMenu.name) == null)
                                     currentColorMain.controls.Add(maincontrol);
 
                                 if (!Helper.DoesMenuExist(currentMenu.name, true)) {

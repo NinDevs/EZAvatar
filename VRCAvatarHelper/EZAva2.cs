@@ -68,7 +68,6 @@ namespace EZAvatar
         public static string debug;
         private bool settings;
         public static bool completeAnimatorLogic = true;
-        public static bool createAnimationClips = true;
         public static bool ignorePreviousStates = true;       
         public static bool autoCreateMenus = true;
 
@@ -94,7 +93,6 @@ namespace EZAvatar
                 GUILayout.Space(8);
 
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
-                createAnimationClips = GUILayout.Toggle(createAnimationClips, "Create Animation Clips");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
                 autoCreateMenus = GUILayout.Toggle(autoCreateMenus, "Automatically Create Menus");
 
@@ -108,15 +106,13 @@ namespace EZAvatar
                 {
                     var watch = System.Diagnostics.Stopwatch.StartNew();
 
-                    if (createAnimationClips)
-                        AnimUtil.MakeAnimationClips(ref matCategories, ref objCategories);
+                    AnimUtil.MakeAnimationClips(ref matCategories, ref objCategories);
                     if (completeAnimatorLogic) 
                     {
                         if (controller != null) {
                             Algorithm.SetupMaterialToggles(ref matCategories);
                             Algorithm.SetupGameObjectToggles(ref objCategories);
                         }
-
                     }
                     if (autoCreateMenus)
                         Algorithm.CreateMenus(ref matCategories, ref objCategories);
@@ -181,9 +177,6 @@ namespace EZAvatar
                 matEnterText = "";
                 count++;
             }
-           
-            //Odd implementation, but you can't just remove items in a foreach loop while it is running - this is for the functionality of deleting categories
-            //We go to this region when the delete button is pressed, which will essentially delete the category we want and restart the loop, redisplaying everything else
 
             for (int i = 0; i < matCategories.Count(); i++)
             {
