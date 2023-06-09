@@ -65,6 +65,27 @@ These categories help you organize toggles/swaps of different kinds, these are t
   of your avatar.
   
   Use + and - buttons to add or remove gameobject slots, and Del to delete that category.
+  
+  ## Settings: 
+  ### Complete Animator Logic
+  **ON by default**
+
+  When turned on, it allows the script to create add to / create new layers, states, parameters, and transitions.
+  If this is off, the script will only create animation clips for you.
+  
+  ### Ignore Previous States
+  **ON by default**
+
+  When turned on, if you are adding on to existing layers (by having categories with names equal to existing layers in the animator), 
+  it will ignore states that already exist within the layer and simply add new states based on what has been input into each category.
+  
+  If this is turned **off**, for any existing layer you are trying to add to with the script, it will delete all the previous states and make new states only based on what has been input into the script. This allows   you as the user to quickly "redo" layers if you so please.
+  
+  ### Auto Create Menus
+  **ON by default**
+
+  Automatically creates menus based on user input in categories, and adds onto existing menus when adding onto layers.
+  If this is off, menus are not created, nor new control options added to existing menus.
 
   ## Once finished setting up:
   ### [Usage example](https://streamable.com/b6q1cr)
