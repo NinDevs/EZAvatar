@@ -89,14 +89,14 @@ namespace EZAvatar
             settings = EditorGUILayout.Foldout(settings, "Settings", true);
             if (settings)
             {
-                EditorGUILayout.BeginVertical();
+                EditorGUILayout.BeginHorizontal();
                 GUILayout.Space(8);
 
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
                 autoCreateMenus = GUILayout.Toggle(autoCreateMenus, "Automatically Create Menus");
 
-                EditorGUILayout.EndVertical();
+                EditorGUILayout.EndHorizontal();
             }
 
             if (GUILayout.Button("Run"))
@@ -155,6 +155,8 @@ namespace EZAvatar
 
         void DrawMaterialUI()
         {           
+            EditorGUILayout.BeginHorizontal();
+            
             matEnterText = EditorGUILayout.TextField(matEnterText);
 
             if (GUILayout.Button("Create category"))
@@ -178,8 +180,14 @@ namespace EZAvatar
                 count++;
             }
 
+            EditorGUILayout.EndHorizontal();
+
             for (int i = 0; i < matCategories.Count(); i++)
             {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(10);
+                GUILayout.BeginVertical("box");
+
                 var name = matCategories[i].name;
                 EditorGUILayout.BeginVertical();
                 matCategories[i].foldout = EditorGUILayout.Foldout(matCategories[i].foldout, name, true);
@@ -216,14 +224,19 @@ namespace EZAvatar
                     if (GUILayout.Button("Del", GUILayout.Width(50)))
                         matCategories.Remove(matCategories[i]);
 
-                    EditorGUILayout.EndHorizontal();
-                }                            
+                    EditorGUILayout.EndHorizontal();                  
+                }
                 EditorGUILayout.EndVertical();
+
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
             }           
         }
 
         void DrawGameObjUI()
-        {           
+        {
+            EditorGUILayout.BeginHorizontal();
+            
             objEnterText = EditorGUILayout.TextField(objEnterText);
 
             if (GUILayout.Button("Create category"))
@@ -247,10 +260,16 @@ namespace EZAvatar
                 count++;
             }
 
+            EditorGUILayout.EndHorizontal();
+
             //Creates a foldout for each category made, which also holds an add button that will add a field
 
             for (int i = 0; i < objCategories.Count(); i++)
             {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(10);
+                GUILayout.BeginVertical("box");
+
                 var name = objCategories[i].name;
                 EditorGUILayout.BeginVertical();
                 objCategories[i].foldout = EditorGUILayout.Foldout(objCategories[i].foldout, name, true);
@@ -284,6 +303,9 @@ namespace EZAvatar
                     EditorGUILayout.EndHorizontal();
                 }                
                 EditorGUILayout.EndVertical();
+
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
             }
         }
      
