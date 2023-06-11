@@ -1,6 +1,6 @@
 ﻿#if UNITY_EDITOR
+#if VRC_SDK_VRCSDK3
 
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -89,7 +89,8 @@ namespace EZAvatar
             {
                 EzAvatar.controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
-               
+                if (EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
+                    EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
             }
 
             if (EzAvatar.controller == null)
@@ -182,4 +183,5 @@ namespace EZAvatar
     }
 }
 
+#endif
 #endif

@@ -1,4 +1,5 @@
 ﻿#if UNITY_EDITOR
+#if VRC_SDK_VRCSDK3
 
 using System;
 using System.Collections.Generic;
@@ -610,7 +611,7 @@ namespace EZAvatar
                                     subMenu = currentMenu
                                 };
 
-                                if (currentColorMain.controls.Any(x => x.name == currentMenu.name) == false)
+                                if (currentColorMain.controls.Any(x => x.name == currentMenu.name) != true)
                                     currentColorMain.controls.Add(maincontrol);
 
                                 if (!Helper.DoesMenuExist(currentMenu.name, true)) {
@@ -685,9 +686,9 @@ namespace EZAvatar
             
                 //Destroys unused menus
                 if (mCategoryCount == 0 && ColorsMainMenu.controls.Count() == 0)
-                    UnityEngine.Object.DestroyImmediate(ColorsMainMenu);
+                    UnityEngine.Object.DestroyImmediate(ColorsMainMenu, true);
                 if (oCategoryCount == 0 && AccessoriesMainMenu.controls.Count() == 0)
-                    UnityEngine.Object.DestroyImmediate(AccessoriesMainMenu);
+                    UnityEngine.Object.DestroyImmediate(AccessoriesMainMenu, true);
 
             }
             AssetDatabase.SaveAssets();
@@ -696,4 +697,5 @@ namespace EZAvatar
     }
 }
 
+#endif
 #endif

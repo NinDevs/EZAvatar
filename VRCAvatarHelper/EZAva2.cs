@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+#if VRC_SDK_VRCSDK3
 
 using UnityEngine;
 using UnityEditor;
@@ -6,6 +7,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.Animations;
+using UnityEditor.SceneManagement;
 
 namespace EZAvatar
 {
@@ -121,7 +123,7 @@ namespace EZAvatar
                     Algorithm.elaspedTime = watch.Elapsed.TotalSeconds;
                     Helper.DisplayCreationResults();                  
                     ReInitializeUI();
-                    SceneSaver.SaveScene();
+                    EditorSceneManager.SaveOpenScenes();
                 }
                 else if (objCategories.Count() + matCategories.Count() == 0)
                 {
@@ -319,4 +321,5 @@ namespace EZAvatar
     }
 }
 
-#endif 
+#endif
+#endif

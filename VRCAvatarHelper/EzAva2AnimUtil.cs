@@ -1,4 +1,5 @@
 ﻿#if UNITY_EDITOR
+#if VRC_SDK_VRCSDK3
 
 using System.Collections.Generic;
 using System.IO;
@@ -158,144 +159,141 @@ namespace EZAvatar
 
         public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories)
         {
-            if (EzAvatar.createAnimationClips)
+            var allowed = false;
+
+            for (int i = 0; i < matCategories.Count(); i++)
             {
-                var allowed = false;
 
-                for (int i = 0; i < matCategories.Count(); i++)
+                var materials = matCategories[i].materials;
+                var gameObj = matCategories[i].objects.FirstOrDefault();
+
+                //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
+                //(just adding one material as a toggle where the layer already exists and has states).
+                if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.controller, matCategories[i].name) == true)
+                    allowed = true;
+
+                if (materials.Count() < 2 && !allowed)
                 {
+                    EzAvatar.debug = "Must provide a minimum of two materials! Base material and the swap materials.";
+                    Debug.Log(EzAvatar.debug);
+                    return;
+                }
 
-                    var materials = matCategories[i].materials;
-                    var gameObj = matCategories[i].objects.FirstOrDefault();
-
-                    //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
-                    //(just adding one material as a toggle where the layer already exists and has states).
-                    if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.controller, matCategories[i].name) == true)
-                        allowed = true;
-
-                    if (materials.Count() < 2 && !allowed)
+                if (materials.Count() >= 2 || allowed && materials.Count() >= 1)
+                {
+                    var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
+                    if (render == null)
                     {
-                        EzAvatar.debug = "Must provide a minimum of two materials! Base material and the swap materials.";
+                        EzAvatar.debug = "Mesh object was not found.";
                         Debug.Log(EzAvatar.debug);
                         return;
                     }
+                    var index = 0;
+                    SerializedObject matslotref = new SerializedObject(render);
 
-                    if (materials.Count() >= 2 || allowed && materials.Count() >= 1)
+                    /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
+                    Of any of the materials in the category, which will allow us to find the proper element index of the material for reference.*/
+                    for (int r = 0; r < matslotref.FindProperty("m_Materials.Array").arraySize; r++)
                     {
-                        var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
-                        if (render == null)
+                        var material = render.sharedMaterials[r];
+                        for (int j = 0; j < materials.Count(); j++)
                         {
-                            EzAvatar.debug = "Mesh object was not found.";
-                            Debug.Log(EzAvatar.debug);
-                            return;
-                        }
-                        var index = 0;
-                        SerializedObject matslotref = new SerializedObject(render);
-
-                        /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
-                        Of any of the materials in the category, which will allow us to find the proper element index of the material for reference.*/
-                        for (int r = 0; r < matslotref.FindProperty("m_Materials.Array").arraySize; r++)
-                        {
-                            var material = render.sharedMaterials[r];
-                            for (int j = 0; j < materials.Count(); j++)
+                            SerializedObject mat = new SerializedObject(materials[j]);
+                            if (mat.FindProperty("m_Name").stringValue == material.name)
                             {
-                                SerializedObject mat = new SerializedObject(materials[j]);
-                                if (mat.FindProperty("m_Name").stringValue == material.name)
-                                {
-                                    index = r;
-                                    break;
-                                }
+                                index = r;
+                                break;
                             }
                         }
+                    }
 
-                        //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
-                        EditorCurveBinding binding = new EditorCurveBinding();
-                        binding.type = typeof(SkinnedMeshRenderer);
-                        //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
-                        var path = render.gameObject.transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
-                        binding.path = path;
-                        binding.propertyName = $"m_Materials.Array.data[{index}]";
+                    //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
+                    EditorCurveBinding binding = new EditorCurveBinding();
+                    binding.type = typeof(SkinnedMeshRenderer);
+                    //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
+                    var path = render.gameObject.transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
+                    binding.path = path;
+                    binding.propertyName = $"m_Materials.Array.data[{index}]";
 
-                        for (int x = 0; x < materials.Count(); x++)
-                        {
-                            //We create a new animationclip for each material, with the name the same as the material name.
-                            var clip = new AnimationClip();
-                            clip.name = materials[x].name;
-                            ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[2];
-                            keyframe[0].value = materials[x];
-                            keyframe[0].time = 0;
-                            keyframe[1].value = materials[x];
-                            keyframe[1].time = 1 / clip.frameRate;
-                            AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
+                    for (int x = 0; x < materials.Count(); x++)
+                    {
+                        //We create a new animationclip for each material, with the name the same as the material name.
+                        var clip = new AnimationClip();
+                        clip.name = materials[x].name;
+                        ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[2];
+                        keyframe[0].value = materials[x];
+                        keyframe[0].time = 0;
+                        keyframe[1].value = materials[x];
+                        keyframe[1].time = 1 / clip.frameRate;
+                        AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
 
-                            matCategories[i].animClips.Add(clip);
-                            ExportClip(clip, gameObj.name);
-                        }
+                        matCategories[i].animClips.Add(clip);
+                        ExportClip(clip, gameObj.name);
                     }
                 }
-                
-                for (int i = 0; i < objCategories.Count(); i++)
-                {
-
-                    var gameObj = objCategories[i].objects;
-
-                    if (objCategories[i].objects[0] == null)
-                    {
-                        EzAvatar.debug = "Must provide a minimum of one gameobject.";
-                        Debug.Log(EzAvatar.debug);
-                        return;
-                    }
-
-                    if (gameObj.Count() >= 1)
-                    {
-                        var onClip = new AnimationClip();
-                        var offClip = new AnimationClip();
-                        onClip.name = $"{objCategories[i].name}ON";
-                        offClip.name = $"{objCategories[i].name}OFF";
-
-                        for (int y = 0; y < gameObj.Count(); y++)
-                        {
-
-                            var path = gameObj[y].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
-
-                            //Creates curves/keys for gameobject active, per object
-                            var onCurve = new AnimationCurve();
-                            onCurve.AddKey(0, 1);
-                            onCurve.AddKey(1 / onClip.frameRate, 1);
-                            onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
-
-                            //Creates curves/keys for gameobject inactive, per object
-                            var offCurve = new AnimationCurve();
-                            offCurve.AddKey(0, 0);
-                            offCurve.AddKey(1 / onClip.frameRate, 0);
-                            offClip.SetCurve(path, typeof(GameObject), "m_IsActive", offCurve);
-
-                        }
-                        //Creates the clip
-                        if (gameObj.Count() == 1)
-                        {
-                            onClip.name = $"{gameObj[0].name}ON";
-                            objCategories[i].animClips.Add(onClip);
-                            ExportClip(onClip, gameObj[0].name);
-
-                            offClip.name = $"{gameObj[0].name}OFF";
-                            objCategories[i].animClips.Add(offClip);
-                            ExportClip(offClip, gameObj[0].name);
-                        }
-
-                        else
-                        {
-                            objCategories[i].animClips.Add(onClip);
-                            //Creates a folder called "Mutli-Toggles" which will host all animations that toggle multiple things at once, for neat organization :)
-                            ExportClip(onClip, "Multi-Toggles");
-
-                            objCategories[i].animClips.Add(offClip);
-                            ExportClip(offClip, "Multi-Toggles");
-                        }
-
-                    }
-                }                 
             }
+                
+            for (int i = 0; i < objCategories.Count(); i++)
+            {
+
+                var gameObj = objCategories[i].objects;
+
+                if (objCategories[i].objects[0] == null)
+                {
+                    EzAvatar.debug = "Must provide a minimum of one gameobject.";
+                    Debug.Log(EzAvatar.debug);
+                    return;
+                }
+
+                if (gameObj.Count() >= 1)
+                {
+                    var onClip = new AnimationClip();
+                    var offClip = new AnimationClip();
+                    onClip.name = $"{objCategories[i].name}ON";
+                    offClip.name = $"{objCategories[i].name}OFF";
+
+                    for (int y = 0; y < gameObj.Count(); y++)
+                    {
+
+                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
+
+                        //Creates curves/keys for gameobject active, per object
+                        var onCurve = new AnimationCurve();
+                        onCurve.AddKey(0, 1);
+                        onCurve.AddKey(1 / onClip.frameRate, 1);
+                        onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
+
+                        //Creates curves/keys for gameobject inactive, per object
+                        var offCurve = new AnimationCurve();
+                        offCurve.AddKey(0, 0);
+                        offCurve.AddKey(1 / onClip.frameRate, 0);
+                        offClip.SetCurve(path, typeof(GameObject), "m_IsActive", offCurve);
+
+                    }
+                    //Creates the clip
+                    if (gameObj.Count() == 1)
+                    {
+                        onClip.name = $"{gameObj[0].name}ON";
+                        objCategories[i].animClips.Add(onClip);
+                        ExportClip(onClip, gameObj[0].name);
+
+                        offClip.name = $"{gameObj[0].name}OFF";
+                        objCategories[i].animClips.Add(offClip);
+                        ExportClip(offClip, gameObj[0].name);
+                    }
+
+                    else
+                    {
+                        objCategories[i].animClips.Add(onClip);
+                        //Creates a folder called "Mutli-Toggles" which will host all animations that toggle multiple things at once, for neat organization :)
+                        ExportClip(onClip, "Multi-Toggles");
+
+                        objCategories[i].animClips.Add(offClip);
+                        ExportClip(offClip, "Multi-Toggles");
+                    }
+
+                }
+            }                       
         }
 
         public static AnimationClip LoadAnimClip(string clipname, string meshName)
@@ -305,4 +303,5 @@ namespace EZAvatar
     }
 }
 
+#endif
 #endif
