@@ -112,7 +112,7 @@ namespace EZAvatar
                     {
                         if (controller != null) {
                             Algorithm.SetupMaterialToggles(ref matCategories);
-                            Algorithm.SetupGameObjectToggles(ref objCategories);
+                            Algorithm.SetupGameObjectToggles(ref objCategories);                         
                         }
                     }
                     if (autoCreateMenus)
@@ -196,19 +196,19 @@ namespace EZAvatar
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
                 if (matCategories[i].foldout)
                 {
+                    EditorGUILayout.BeginVertical();
                     matCategories[i].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].objects[0], typeof(GameObject), true);
 
                     //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
                     for (int y = 0; y < matCategories[i].slots; y++)
                     {
                         Array.Resize(ref matCategories[i].materials, matCategories[i].slots);
-                        EditorGUILayout.BeginVertical();
                         if (y == 0)
                             matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField("Default", matCategories[i].materials[y], typeof(Material), false);
                         else
                             matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField($"Mat {y}", matCategories[i].materials[y], typeof(Material), false);
-                        EditorGUILayout.EndVertical();
                     }
+                    EditorGUILayout.EndVertical();
 
                     EditorGUILayout.BeginHorizontal();
                     GUILayout.FlexibleSpace();
@@ -278,13 +278,13 @@ namespace EZAvatar
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
                 if (objCategories[i].foldout)
                 {
+                    EditorGUILayout.BeginVertical();
                     for (int j = 0; j < objCategories[i].slots; j++)
                     {
                         Array.Resize(ref objCategories[i].objects, objCategories[i].slots);
-                        EditorGUILayout.BeginVertical();
                         objCategories[i].objects[j] = (GameObject)EditorGUILayout.ObjectField($"Object {j}", objCategories[i].objects[j], typeof(GameObject), true);
-                        EditorGUILayout.EndVertical();
                     }
+                    EditorGUILayout.EndVertical();
 
                     EditorGUILayout.BeginHorizontal();
                     GUILayout.FlexibleSpace();

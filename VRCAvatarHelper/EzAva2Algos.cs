@@ -72,8 +72,10 @@ namespace EZAvatar
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
                         var statemachine = layer.stateMachine;
 
-                        if (ControllerUtil.GetParameterByName(controller, parametername) == null)
+                        if (ControllerUtil.GetParameterByName(controller, parametername) == null) {
                             controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
+                            ControllerUtil.TurnOnParameterBool(controller, parametername);
+                        }
 
                         if (expressionParametersMenu.FindParameter(parametername) == null)
                             VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
@@ -84,26 +86,19 @@ namespace EZAvatar
                             statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
                             statesCompleted++;
                             matCategories[i].states.Add(states[y]);
-                            AssetDatabase.SaveAssets();
                         }
 
                         if (matCategories[i].states.Count() == 2)
                         {
                             //Creates a transition that will start from the first state to the second state
-                            AnimatorStateTransition onToOffTransition = new AnimatorStateTransition();
-                            onToOffTransition.destinationState = statemachine.states[1].state;
-                            ControllerUtil.ApplyTransitionSettings(onToOffTransition, false, 0, false, 0);
-                            onToOffTransition.AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
-                            statemachine.states[0].state.AddTransition(onToOffTransition);
+                            layer.stateMachine.states[0].state.AddTransition(layer.stateMachine.states[1].state);
+                            ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[0].state.transitions[0], false, 0, false, 0);
+                            layer.stateMachine.states[0].state.transitions[0].AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
 
                             //Creates a transition that will start from the second state to the first state
-                            AnimatorStateTransition offToOnTransition = new AnimatorStateTransition();
-                            offToOnTransition.destinationState = statemachine.states[0].state;
-                            ControllerUtil.ApplyTransitionSettings(offToOnTransition, false, 0, false, 0);
-                            offToOnTransition.AddCondition(AnimatorConditionMode.If, 1, parametername);
-                            statemachine.states[1].state.AddTransition(offToOnTransition);
-
-                            AssetDatabase.SaveAssets();
+                            layer.stateMachine.states[1].state.AddTransition(layer.stateMachine.states[0].state);
+                            ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[1].state.transitions[0], false, 0, false, 0);
+                            layer.stateMachine.states[1].state.transitions[0].AddCondition(AnimatorConditionMode.If, 1, parametername);
                         }
 
                     }
@@ -116,6 +111,7 @@ namespace EZAvatar
                         matCategories[i].layer = layer;
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
                         var statemachine = layer.stateMachine;
+
                         //Removes states if we are not ignoring previous states
                         if (!EzAvatar.ignorePreviousStates && !cleared)
                         {
@@ -127,35 +123,23 @@ namespace EZAvatar
                         {
                             if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                             {
-                                ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);
+                                ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);                               
                                 matCategories[i].switched = true;
                             }
                         }
 
-                        if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null && statemachine.states.Count() >= 2)
+                        if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
                         {
                             states[y] = statemachine.AddState(statename, new Vector3(360, counter * 55));
                             statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
                             matCategories[i].states.Add(states[y]);
                             statesCompleted++;                               
                             var anyStateTransition = statemachine.AddAnyStateTransition(states[y]);
-                            ControllerUtil.ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
                             anyStateTransition.AddCondition(AnimatorConditionMode.Equals, counter, parametername);
                             counter++;
-                            AssetDatabase.SaveAssets();
                         } 
-                        else if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
-                        {
-                            states[y] = statemachine.AddState(statename, new Vector3(360, counter * 55));
-                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
-                            statesCompleted++;
-                            matCategories[i].states.Add(states[y]);
-                            var anyStateTransition = statemachine.AddAnyStateTransition(states[y]);
-                            ControllerUtil.ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
-                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, counter, parametername);
-                            counter++;
-                            AssetDatabase.SaveAssets();
-                        }
+
                     }                  
 
                     //Add new states normally
@@ -198,11 +182,10 @@ namespace EZAvatar
                             //Creates any state transition to each state
                             var anyStateTransition = statemachine.AddAnyStateTransition(states[y]);
                             //Applies transition settings
-                            ControllerUtil.ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
                             //Adds condition to newly created transition
                             anyStateTransition.AddCondition(AnimatorConditionMode.Equals, conditioncount, parametername);
                             conditioncount++;
-                            AssetDatabase.SaveAssets();
                         }
                     }                  
                 }
@@ -253,9 +236,8 @@ namespace EZAvatar
                     
                     layer = ControllerUtil.GetLayerByName(ref controller, layername);
                     objCategories[i].layer = layer;
-                    ControllerUtil.SetLayerWeight(controller, layer, 1);
-                    var statemachine = layer.stateMachine;
-                    
+                    ControllerUtil.SetLayerWeight(controller, layer, 1);   
+
                     //Removes states if we are not ignoring previous states
                     if (!EzAvatar.ignorePreviousStates && !cleared)
                     {
@@ -274,34 +256,29 @@ namespace EZAvatar
                     if (expressionParametersMenu.FindParameter(parametername) == null)
                         VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
                  
-                    states[y] = statemachine.AddState(statename, new Vector3(360, y * 55));
+                    states[y] = layer.stateMachine.AddState(statename, new Vector3(360, y * 55));
                     statesCompleted++;
 
                     //When both states have been created
                     if (states.Count() ==  2 && y == clipcount - 1)
                     {
                         //Creates a transition that will start from the first state to the second state
-                        AnimatorStateTransition onToOffTransition = new AnimatorStateTransition();
-                        onToOffTransition.destinationState = statemachine.states[1].state;
-                        ControllerUtil.ApplyTransitionSettings(onToOffTransition, false, 0, false, 0);
-                        onToOffTransition.AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
-                        statemachine.states[0].state.AddTransition(onToOffTransition);
+                        layer.stateMachine.states[0].state.AddTransition(layer.stateMachine.states[1].state);
+                        ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[0].state.transitions[0], false, 0, false, 0);
+                        layer.stateMachine.states[0].state.transitions[0].AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
                         //Set state motion to ON anim clip
-                        statemachine.states[0].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) != null ? 
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) : 
+                        layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) != null ?
+                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) :
                             AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, "Multi-Toggles");
 
                         //Creates a transition that will start from the second state to the first state
-                        AnimatorStateTransition offToOnTransition = new AnimatorStateTransition();
-                        offToOnTransition.destinationState = statemachine.states[0].state;
-                        ControllerUtil.ApplyTransitionSettings(offToOnTransition, false, 0, false, 0);
-                        offToOnTransition.AddCondition(AnimatorConditionMode.If, 1, parametername);
-                        statemachine.states[1].state.AddTransition(offToOnTransition);
+                        layer.stateMachine.states[1].state.AddTransition(layer.stateMachine.states[0].state);
+                        ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[1].state.transitions[0], false, 0, false, 0);
+                        layer.stateMachine.states[1].state.transitions[0].AddCondition(AnimatorConditionMode.If, 1, parametername);
                         //Set state motion to OFF anim clip
-                        statemachine.states[1].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) != null ? 
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) : 
+                        layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) != null ?
+                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) :
                             AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, "Multi-Toggles");
-                        AssetDatabase.SaveAssets();
                     }
                 }
             }
@@ -329,25 +306,31 @@ namespace EZAvatar
 
             //If an accessories/colors menu already exists for this avatar, we load that menu and add to it.
             //Otherwise we create new menus.
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0)
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0) {
                 AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
-
+                EditorUtility.SetDirty(AccessoriesMainMenu);
+            }
+                
             else if (oCategoryCount > 0)
             {
                 AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
                 AccessoriesMainMenu.name = "Accessories";
                 AssetDatabase.CreateAsset(AccessoriesMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset");
+                EditorUtility.SetDirty(AccessoriesMainMenu);
                 menusCompleted++;
             }
 
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0)
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0) {
                 ColorsMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                EditorUtility.SetDirty(ColorsMainMenu);
+            }             
 
             else if (mCategoryCount > 0)
             {
                 ColorsMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 ColorsMainMenu.name = "Colors";
                 AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset");
+                EditorUtility.SetDirty(ColorsMainMenu);
                 menusCompleted++;
             }
 
@@ -362,15 +345,15 @@ namespace EZAvatar
                          
                 AssetDatabase.CreateAsset(newExMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
                 EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu = newExMenu;
-                expressionsMenu = newExMenu;
-                
+                expressionsMenu = newExMenu;               
+
                 EzAvatar.debug = "Missing expressions menu, created a new expressions menu...";
                 Debug.Log(EzAvatar.debug);
                 menusCompleted++;
                 
                 AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
+            EditorUtility.SetDirty(expressionsMenu);
 
             //Add these newly created menus (accessory/colors) to the main menu if they are not already present
             if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu?.name) == null && mCategoryCount > 0)
@@ -381,9 +364,6 @@ namespace EZAvatar
                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                     subMenu = ColorsMainMenu
                 });
-
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
 
             if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu?.name) == null && oCategoryCount > 0)
@@ -394,9 +374,6 @@ namespace EZAvatar
                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                     subMenu = AccessoriesMainMenu
                 });
-
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
 
             if (EzAvatar.autoCreateMenus)
@@ -423,9 +400,7 @@ namespace EZAvatar
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
                             parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = currlayername },
                             value = 1
-                        });
-
-                        AssetDatabase.SaveAssets();                    
+                        });                  
                     }
 
                     //Once we reach 8 controls, we will create a new menu to store additional toggles
@@ -451,13 +426,13 @@ namespace EZAvatar
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                             subMenu = ExtraMenus[index - 1]
                         });
-
-                        AssetDatabase.SaveAssets();
                         
                         if (!Helper.DoesMenuExist(currentAccessoryMain.name, false)) {
                             AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
                             menusCompleted++;
                         }
+
+                        AssetDatabase.SaveAssets();
 
                         currentAccessoryMain = ExtraMenus[index - 1];
 
@@ -479,17 +454,13 @@ namespace EZAvatar
                         goto objmenustart;
                     }
                     //When we have reached the end
-                    if (i == oCategoryCount - 1)
-                    {                       
-                        AssetDatabase.SaveAssets();
-                        AssetDatabase.Refresh();
-
-                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset")) 
-                        {
+                    if (i == oCategoryCount - 1) {                       
+                        
+                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset"))  {
                             AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
                             menusCompleted++;
                         }
-
+  
                     }
 
                 }
@@ -543,7 +514,6 @@ namespace EZAvatar
                             menusCompleted++;
                         }
                         //Skip to next category
-                        AssetDatabase.SaveAssets();
                         continue;
                     }
 
@@ -619,7 +589,6 @@ namespace EZAvatar
                                     menusCompleted++;
                                 }
 
-                                AssetDatabase.SaveAssets();
                             }
 
                         }
@@ -674,7 +643,6 @@ namespace EZAvatar
                     }
                     //When we have reached the end
                     if (i == mCategoryCount - 1) {
-                        AssetDatabase.Refresh();
 
                         if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentColorMain.name}.asset")) {
                             AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");

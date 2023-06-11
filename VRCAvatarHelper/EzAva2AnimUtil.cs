@@ -46,7 +46,7 @@ namespace EZAvatar
             so.ApplyModifiedProperties();
         }
 
-        public static void ApplyTransitionSettings(AnimatorStateTransition ast, bool hasExitTime, float exitTimeValue, bool hasFixedDuration, float duration)
+        public static void ApplyTransitionSettings(ref AnimatorStateTransition ast, bool hasExitTime, float exitTimeValue, bool hasFixedDuration, float duration)
         {
             ast.hasExitTime = hasExitTime;
             ast.exitTime = exitTimeValue;
@@ -120,7 +120,7 @@ namespace EZAvatar
                         {
                             state.RemoveTransition(transitions[r]);
                             var anyStateTransition = statemachine.AddAnyStateTransition(state);
-                            ApplyTransitionSettings(anyStateTransition, false, 0, false, 0);
+                            ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
                             anyStateTransition.AddCondition(AnimatorConditionMode.Equals, iteration++, parametername);
                         }
                     }
