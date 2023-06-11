@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-#if VRC_SDK_VRCSDK3
 
 using UnityEngine;
 using UnityEditor;
@@ -321,5 +320,4 @@ namespace EZAvatar
     }
 }
 
-#endif
 #endif

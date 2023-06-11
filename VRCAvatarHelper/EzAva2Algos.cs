@@ -332,7 +332,7 @@ namespace EZAvatar
             if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0)
                 AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
-            else
+            else if (oCategoryCount > 0)
             {
                 AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
                 AccessoriesMainMenu.name = "Accessories";
@@ -343,7 +343,7 @@ namespace EZAvatar
             if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0)
                 ColorsMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
-            else
+            else if (mCategoryCount > 0)
             {
                 ColorsMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 ColorsMainMenu.name = "Colors";
@@ -373,7 +373,7 @@ namespace EZAvatar
             }
 
             //Add these newly created menus (accessory/colors) to the main menu if they are not already present
-            if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu.name) == null && mCategoryCount > 0)
+            if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu?.name) == null && mCategoryCount > 0)
             {
                 expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                 {
@@ -386,7 +386,7 @@ namespace EZAvatar
                 AssetDatabase.Refresh();
             }
 
-            if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu.name) == null && oCategoryCount > 0)
+            if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu?.name) == null && oCategoryCount > 0)
             {
                 expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                 {
@@ -683,13 +683,6 @@ namespace EZAvatar
                         }
                     }
                 }
-            
-                //Destroys unused menus
-                if (mCategoryCount == 0 && ColorsMainMenu.controls.Count() == 0)
-                    UnityEngine.Object.DestroyImmediate(ColorsMainMenu, true);
-                if (oCategoryCount == 0 && AccessoriesMainMenu.controls.Count() == 0)
-                    UnityEngine.Object.DestroyImmediate(AccessoriesMainMenu, true);
-
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
