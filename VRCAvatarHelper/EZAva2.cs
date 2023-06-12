@@ -7,8 +7,9 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
+using EZAva2;
 
-namespace EZAvatar
+namespace EZAva2
 {
     public class Category
     {
@@ -22,8 +23,9 @@ namespace EZAvatar
         public List<AnimatorState> states = new List<AnimatorState>();
         public bool switched = false;
     }
+}
 
-    public class EzAvatar : EditorWindow
+    public class EZAvatar : EditorWindow
     {
         [MenuItem("Nin/EZAvatar/Open GitHub")]
         static void OpenGitHub()
@@ -36,7 +38,7 @@ namespace EZAvatar
         static void Init()
         {
             //Creating a new editor window, and then shows it
-            EzAvatar window = (EzAvatar)GetWindow(typeof(EzAvatar));
+            EZAvatar window = (EZAvatar)GetWindow(typeof(EZAvatar));
             window.Show();
         }
         private static GameObject previousAvatar;
@@ -318,6 +320,6 @@ namespace EZAvatar
             objCategories.Clear();           
         }      
     }
-}
+
 
 #endif

@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace EZAvatar
+namespace EZAva2
 {
     public class Helper
     {
@@ -74,8 +74,8 @@ namespace EZAvatar
 
         public static void DisplayCreationResults()
         {
-            EzAvatar.debug = $"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
-            Debug.Log(EzAvatar.debug);
+            EZAvatar.debug = $"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
+            Debug.Log(EZAvatar.debug);
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
             Algorithm.menusCompleted = 0;
@@ -84,20 +84,20 @@ namespace EZAvatar
 
         public static bool HasFXLayer(int arg)
         {
-            if (EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
+            if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController != null)
             {
-                EzAvatar.controller = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
+                EZAvatar.controller = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;                             
-                if (EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
-                    EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
-                EditorUtility.SetDirty(EzAvatar.controller);
+                if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
+                    EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
+                EditorUtility.SetDirty(EZAvatar.controller);
             }
 
-            if (EzAvatar.controller == null)
+            if (EZAvatar.controller == null)
             {
-                EzAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
-                Debug.Log(EzAvatar.debug);               
+                EZAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
+                Debug.Log(EZAvatar.debug);               
                 return false;
             }
 
@@ -105,13 +105,13 @@ namespace EZAvatar
             {
                 if (arg != 0)
                 {
-                    EzAvatar.debug = "FX Layer found! Proceeding . . . ";
-                    Debug.Log(EzAvatar.debug);
+                    EZAvatar.debug = "FX Layer found! Proceeding . . . ";
+                    Debug.Log(EZAvatar.debug);
                 }
                 else
                 {
-                    EzAvatar.debug = "FX Layer found!";
-                    Debug.Log(EzAvatar.debug);
+                    EZAvatar.debug = "FX Layer found!";
+                    Debug.Log(EZAvatar.debug);
                 }
                 return true;
             }
@@ -119,10 +119,10 @@ namespace EZAvatar
 
         public static bool DoesMenuExist(string menu, bool isSub)
         {
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{menu}.asset") && !isSub)
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{menu}.asset") && !isSub)
                 return true;
             
-            else if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{menu}.asset") && isSub)
+            else if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{menu}.asset") && isSub)
                 return true;
 
             else

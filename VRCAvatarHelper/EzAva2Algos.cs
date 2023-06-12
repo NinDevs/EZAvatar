@@ -9,7 +9,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace EZAvatar
+namespace EZAva2
 {
     public class Algorithm
     {
@@ -20,16 +20,16 @@ namespace EZAvatar
         
         public static void SetupMaterialToggles(ref List<Category> matCategories)
         {
-            var controller = EzAvatar.controller;
-            var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
+            var controller = EZAvatar.controller;
+            var expressionParametersMenu = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
             //Create parameters menu if it doesn't exist
             if (expressionParametersMenu == null) {
                 var newParametersMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters>();
-                newParametersMenu.name = $"{EzAvatar.avatar.name}Parameters";
-                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}"))
-                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}");
-                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/{newParametersMenu.name}.asset");
-                EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
+                newParametersMenu.name = $"{EZAvatar.avatar.name}Parameters";
+                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
+                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
+                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
                 AssetDatabase.SaveAssets();
             }
 
@@ -43,8 +43,8 @@ namespace EZAvatar
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
 
-                EzAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
-                Debug.Log(EzAvatar.debug);
+                EZAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
+                Debug.Log(EZAvatar.debug);
 
                 bool layerExists = ControllerUtil.GetLayerByName(ref controller, layername) != null ? true : false;
                 int counter = layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
@@ -113,13 +113,13 @@ namespace EZAvatar
                         var statemachine = layer.stateMachine;
 
                         //Removes states if we are not ignoring previous states
-                        if (!EzAvatar.ignorePreviousStates && !cleared)
+                        if (!EZAvatar.ignorePreviousStates && !cleared)
                         {
                             ControllerUtil.RemoveStates(layer);
                             cleared = true;
                         }
                         //If we are have a layer that already has 2 states with on and off logic, and we are adding to that layer, we need to change the parameter to int
-                        if (EzAvatar.ignorePreviousStates)
+                        if (EZAvatar.ignorePreviousStates)
                         {
                             if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                             {
@@ -161,7 +161,7 @@ namespace EZAvatar
                         if (statemachine.states.Count() > 0 && y == 0)
                             conditioncount = statemachine.states.Count();
                         //Removes states if we are not ignoring previous states
-                        if (!EzAvatar.ignorePreviousStates && !cleared) {
+                        if (!EZAvatar.ignorePreviousStates && !cleared) {
                             ControllerUtil.RemoveStates(layer);
                             cleared = true;
                         }
@@ -196,16 +196,16 @@ namespace EZAvatar
 
         public static void SetupGameObjectToggles(ref List<Category> objCategories)
         {
-            var controller = EzAvatar.controller;
-            var expressionParametersMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
+            var controller = EZAvatar.controller;
+            var expressionParametersMenu = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters;
             //Create parameters menu if it doesn't exist
             if (expressionParametersMenu == null) {
                 var newParametersMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters>();
-                newParametersMenu.name = $"{EzAvatar.avatar.name}Parameters";
-                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}"))
-                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}");
-                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/{newParametersMenu.name}.asset");
-                EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
+                newParametersMenu.name = $"{EZAvatar.avatar.name}Parameters";
+                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
+                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
+                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
             }
@@ -218,8 +218,8 @@ namespace EZAvatar
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
 
-                EzAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
-                Debug.Log(EzAvatar.debug);
+                EZAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
+                Debug.Log(EZAvatar.debug);
 
                 var cleared = false;
 
@@ -239,7 +239,7 @@ namespace EZAvatar
                     ControllerUtil.SetLayerWeight(controller, layer, 1);   
 
                     //Removes states if we are not ignoring previous states
-                    if (!EzAvatar.ignorePreviousStates && !cleared)
+                    if (!EZAvatar.ignorePreviousStates && !cleared)
                     {
                         ControllerUtil.RemoveStates(layer);
                         cleared = true;
@@ -288,8 +288,8 @@ namespace EZAvatar
 
         public static void CreateMenus(ref List<Category> matCategories, ref List<Category> objCategories)
         {
-            var controller = EzAvatar.controller;
-            var expressionsMenu = EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
+            var controller = EZAvatar.controller;
+            var expressionsMenu = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
 
             VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu AccessoriesMainMenu = null;
             VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu ColorsMainMenu = null;
@@ -298,16 +298,16 @@ namespace EZAvatar
             var oCategoryCount = objCategories.Count();
 
             //Creates directory for menus
-            if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus"))
+            if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus"))
             {
-                Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus");
+                Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus");
                 AssetDatabase.Refresh();
             }
 
             //If an accessories/colors menu already exists for this avatar, we load that menu and add to it.
             //Otherwise we create new menus.
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0) {
-                AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0) {
+                AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
                 EditorUtility.SetDirty(AccessoriesMainMenu);
             }
                 
@@ -315,13 +315,13 @@ namespace EZAvatar
             {
                 AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
                 AccessoriesMainMenu.name = "Accessories";
-                AssetDatabase.CreateAsset(AccessoriesMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Accessories.asset");
+                AssetDatabase.CreateAsset(AccessoriesMainMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset");
                 EditorUtility.SetDirty(AccessoriesMainMenu);
                 menusCompleted++;
             }
 
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0) {
-                ColorsMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Colors.asset") && mCategoryCount > 0) {
+                ColorsMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Colors.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
                 EditorUtility.SetDirty(ColorsMainMenu);
             }             
 
@@ -329,7 +329,7 @@ namespace EZAvatar
             {
                 ColorsMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 ColorsMainMenu.name = "Colors";
-                AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Colors.asset");
+                AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Colors.asset");
                 EditorUtility.SetDirty(ColorsMainMenu);
                 menusCompleted++;
             }
@@ -341,14 +341,14 @@ namespace EZAvatar
             if (expressionsMenu == null)
             {
                 var newExMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
-                newExMenu.name = $"{EzAvatar.avatar.name}Main";
+                newExMenu.name = $"{EZAvatar.avatar.name}Main";
                          
-                AssetDatabase.CreateAsset(newExMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
-                EzAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu = newExMenu;
+                AssetDatabase.CreateAsset(newExMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu = newExMenu;
                 expressionsMenu = newExMenu;               
 
-                EzAvatar.debug = "Missing expressions menu, created a new expressions menu...";
-                Debug.Log(EzAvatar.debug);
+                EZAvatar.debug = "Missing expressions menu, created a new expressions menu...";
+                Debug.Log(EZAvatar.debug);
                 menusCompleted++;
                 
                 AssetDatabase.SaveAssets();
@@ -376,7 +376,7 @@ namespace EZAvatar
                 });
             }
 
-            if (EzAvatar.autoCreateMenus)
+            if (EZAvatar.autoCreateMenus)
             {
                 //Count for extra menus
                 var index = 0;
@@ -412,12 +412,12 @@ namespace EZAvatar
 
                         var accMenuNameCount = 0;
 
-                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/AccessoriesMore{accMenuNameCount}.asset") != false){
+                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/AccessoriesMore{accMenuNameCount}.asset") != false){
                             accMenuNameCount++;
                         }
 
                         ExtraMenus[index - 1].name = $"AccessoriesMore{accMenuNameCount}";
-                        AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{ExtraMenus[index - 1].name}.asset");
+                        AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{ExtraMenus[index - 1].name}.asset");
                         menusCompleted++;
 
                         currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -428,7 +428,7 @@ namespace EZAvatar
                         });
                         
                         if (!Helper.DoesMenuExist(currentAccessoryMain.name, false)) {
-                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
+                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
                             menusCompleted++;
                         }
 
@@ -456,8 +456,8 @@ namespace EZAvatar
                     //When we have reached the end
                     if (i == oCategoryCount - 1) {                       
                         
-                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset"))  {
-                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
+                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset"))  {
+                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
                             menusCompleted++;
                         }
   
@@ -478,7 +478,7 @@ namespace EZAvatar
                     bool isLoaded = false;
                     
                     if (Helper.DoesMenuExist(currentMenu.name, true)) {
-                        currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                        currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
                         //Get latest nested menu
                         while (currentMenu.controls.Last().subMenu != null) {
                             currentMenu = currentMenu.controls.Last().subMenu;
@@ -510,7 +510,7 @@ namespace EZAvatar
                         });
 
                         if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
                             menusCompleted++;
                         }
                         //Skip to next category
@@ -523,11 +523,11 @@ namespace EZAvatar
                         var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                         var matMenuNameCount = 0;
 
-                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/ColorsMore{matMenuNameCount}.asset") != false) {
+                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/ColorsMore{matMenuNameCount}.asset") != false) {
                             matMenuNameCount++;
                         }
                        
-                        AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/ColorsMore{matMenuNameCount}.asset");
+                        AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/ColorsMore{matMenuNameCount}.asset");
                         menusCompleted++;
 
                         currentColorMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
@@ -539,7 +539,7 @@ namespace EZAvatar
 
                         if (!Helper.DoesMenuExist(currentColorMain.name, false))
                         {
-                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
+                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
                             menusCompleted++;
                         }
 
@@ -585,7 +585,7 @@ namespace EZAvatar
                                     currentColorMain.controls.Add(maincontrol);
 
                                 if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
                                     menusCompleted++;
                                 }
 
@@ -602,19 +602,19 @@ namespace EZAvatar
                             index++;
                             Array.Resize(ref ExtraMenus, index + 1);
 
-                            while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{currlayername}More{colornamecount}.asset") != false) {
+                            while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currlayername}More{colornamecount}.asset") != false) {
                                 colornamecount++;
                             }
 
                             ExtraMenus[index - 1].name = $"{currlayername}More{colornamecount}";
 
                             if (!Helper.DoesMenuExist(ExtraMenus[index - 1].name, true)) {
-                                AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                                AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
                                 menusCompleted++;
                             }
 
                             else
-                                ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                                ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
 
                             currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                             {
@@ -624,7 +624,7 @@ namespace EZAvatar
                             });
                             //Export our current menu
                             if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
                                 menusCompleted++;
                             }
 
@@ -644,8 +644,8 @@ namespace EZAvatar
                     //When we have reached the end
                     if (i == mCategoryCount - 1) {
 
-                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentColorMain.name}.asset")) {
-                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
+                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset")) {
+                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
                             AssetDatabase.SaveAssets();
                             menusCompleted++;
                         }

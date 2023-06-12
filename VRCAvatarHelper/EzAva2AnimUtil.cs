@@ -1,5 +1,4 @@
 ﻿#if UNITY_EDITOR
-#if VRC_SDK_VRCSDK3
 
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +7,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace EZAvatar
+namespace EZAva2
 {
     public class ControllerUtil
     {
@@ -94,7 +93,8 @@ namespace EZAvatar
                     statemachine.RemoveState(state.state);
             }         
         }
-
+        
+#if VRC_SDK_VRCSDK3
         public static void ChangeParameterToInt(AnimatorController controller, AnimatorControllerLayer layer, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters expressionParametersMenu, string parametername)
         {
             var statemachine = layer.stateMachine;
@@ -128,32 +128,33 @@ namespace EZAvatar
 
             }
         }
+#endif
     }
 
     public class AnimUtil
     {
         public static void ExportClip(AnimationClip clip, string meshName)
         {
-            var savePath = $"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}";
+            var savePath = $"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}";
             if (!Directory.Exists(savePath))
             {
                 Directory.CreateDirectory(savePath);
                 AssetDatabase.Refresh();
             }
-            if (EzAvatar.avatar != null)
+            if (EZAvatar.avatar != null)
             {
-                if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim"))
+                if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim"))
                 {
-                    AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
-                    Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}!");
+                    AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
+                    Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
                 }
                 else
-                    Debug.Log($"Animation clip {clip.name} already exists within Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}, skipping...");
+                    Debug.Log($"Animation clip {clip.name} already exists within Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}, skipping...");
             }
             else
             {
-                EzAvatar.debug = "Avatar gameobject was not found.";
-                Debug.Log(EzAvatar.debug);
+                EZAvatar.debug = "Avatar gameobject was not found.";
+                Debug.Log(EZAvatar.debug);
             }
         }
 
@@ -169,13 +170,13 @@ namespace EZAvatar
 
                 //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
                 //(just adding one material as a toggle where the layer already exists and has states).
-                if (Helper.DoesCategoryExistAndHaveStates(EzAvatar.controller, matCategories[i].name) == true)
+                if (Helper.DoesCategoryExistAndHaveStates(EZAvatar.controller, matCategories[i].name) == true)
                     allowed = true;
 
                 if (materials.Count() < 2 && !allowed)
                 {
-                    EzAvatar.debug = "Must provide a minimum of two materials! Base material and the swap materials.";
-                    Debug.Log(EzAvatar.debug);
+                    EZAvatar.debug = "Must provide a minimum of two materials! Base material and the swap materials.";
+                    Debug.Log(EZAvatar.debug);
                     return;
                 }
 
@@ -184,8 +185,8 @@ namespace EZAvatar
                     var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
                     if (render == null)
                     {
-                        EzAvatar.debug = "Mesh object was not found.";
-                        Debug.Log(EzAvatar.debug);
+                        EZAvatar.debug = "Mesh object was not found.";
+                        Debug.Log(EZAvatar.debug);
                         return;
                     }
                     var index = 0;
@@ -211,7 +212,7 @@ namespace EZAvatar
                     EditorCurveBinding binding = new EditorCurveBinding();
                     binding.type = typeof(SkinnedMeshRenderer);
                     //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
-                    var path = render.gameObject.transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
+                    var path = render.gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
                     binding.path = path;
                     binding.propertyName = $"m_Materials.Array.data[{index}]";
 
@@ -240,8 +241,8 @@ namespace EZAvatar
 
                 if (objCategories[i].objects[0] == null)
                 {
-                    EzAvatar.debug = "Must provide a minimum of one gameobject.";
-                    Debug.Log(EzAvatar.debug);
+                    EZAvatar.debug = "Must provide a minimum of one gameobject.";
+                    Debug.Log(EZAvatar.debug);
                     return;
                 }
 
@@ -255,7 +256,7 @@ namespace EZAvatar
                     for (int y = 0; y < gameObj.Count(); y++)
                     {
 
-                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EzAvatar.avatar.name.Length + 1);
+                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
 
                         //Creates curves/keys for gameobject active, per object
                         var onCurve = new AnimationCurve();
@@ -291,17 +292,15 @@ namespace EZAvatar
                         objCategories[i].animClips.Add(offClip);
                         ExportClip(offClip, "Multi-Toggles");
                     }
-
                 }
             }                       
         }
 
         public static AnimationClip LoadAnimClip(string clipname, string meshName)
         {
-           return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EzAvatar.avatar.name}/Animations/{meshName}/{clipname}.anim", typeof(AnimationClip));
+           return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clipname}.anim", typeof(AnimationClip));
         }
     }
 }
 
-#endif
 #endif
