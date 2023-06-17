@@ -76,7 +76,7 @@ namespace EZAva2
         {
             EZAvatar.debug = SetTextColor($"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. " +
                 $"Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus at <a href='Assets/Nin/EZAvatar/{EZAvatar.avatar.name}'>Assets/Nin/EZAvatar/{EZAvatar.avatar.name}</a>. :)", "#1bfa53");
-            Debug.Log($"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)");
+            Debug.Log($"<color=green>[EZAvatar]</color>: Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)");
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
             Algorithm.menusCompleted = 0;
@@ -102,13 +102,15 @@ namespace EZAva2
 
             if (EZAvatar.controller == null && EZAvatar.avatar != null)
             {
-                EZAvatar.debug = SetTextColor("There is no FX Layer on this avatar! FX Layer animator controller is required for this script!", "yellow");             
+                EZAvatar.debug = SetTextColor("There is no <b>FX Layer</b> on this avatar! FX Layer animator controller is required for this script!", "yellow");
+                Debug.Log("<color=yellow>[EZAvatar]</color>: There is no FX Layer on this avatar! FX Layer animator controller is required for this script!");
                 return false;
             }
 
             else if (EZAvatar.controller != null && EZAvatar.avatar != null)
             {
                 EZAvatar.debug = SetTextColor("FX Layer found!", "#1bfa53");
+                Debug.Log("<color=green>[EZAvatar]</color>: FX Layer found!");
                 return true;
             }
 

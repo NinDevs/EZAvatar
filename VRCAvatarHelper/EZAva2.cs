@@ -118,7 +118,6 @@ namespace EZAva2
                 autoSelectFolderWhenRun = GUILayout.Toggle(autoSelectFolderWhenRun, "Select Avatar Folder When Run");
                 enableUnityDebugLogs = GUILayout.Toggle(enableUnityDebugLogs, "Enable Unity Debug Console Logs");
 
-
                 if (GUILayout.Button("Reset", GUILayout.Width(75)))
                 {
                     ReInitializeUI();
@@ -127,6 +126,8 @@ namespace EZAva2
                     autoCreateMenus = true;
                     autoSelectFolderWhenRun = true;
                     enableUnityDebugLogs = true;
+                    avatar = null;
+                    controller = null;
                 }
                 
                 EditorGUILayout.EndVertical();
