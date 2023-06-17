@@ -83,7 +83,7 @@ namespace EZAva2
         public static bool autoSelectFolderWhenRun = true;
         public static bool enableUnityDebugLogs = true;
         
-        public static string Version = "v1.1.0";
+        public static string Version = "v1.1.1";
 
         public enum CreationType
         {
@@ -160,12 +160,12 @@ namespace EZAva2
                 }
                 else if (objCategories.Count() + matCategories.Count() == 0)
                 {
-                    Debug.LogWarning("Must create categories in order to run.");
+                    Debug.LogWarning("<color=yellow>[EZAvatar]</color>: Must create categories in order to run.");
                     debug = Helper.SetTextColor("Must create categories in order to run.", "yellow");
                 }
                 else
                 {
-                    Debug.LogWarning("Missing avatar object.");
+                    Debug.LogWarning("<color=yellow>[EZAvatar]</color>: Missing avatar object.");
                     debug = Helper.SetTextColor("Missing avatar object.", "yellow");
                 }
             }
@@ -210,7 +210,7 @@ namespace EZAva2
                         Helper.AddCategory(matCategories, matEnterText);
                     else
                     {
-                        Debug.Log("Category already exists! Try a different name.");
+                        Debug.Log("<color=yellow>[EZAvatar]</color>: Category already exists! Try a different name.");
                         debug = Helper.SetTextColor("Category already exists! Try a different name.", "yellow");
                     }
                 }
@@ -315,7 +315,7 @@ namespace EZAva2
                         Helper.AddCategory(objCategories, objEnterText);
                     else
                     {
-                        Debug.Log("Category already exists! Try a different name.");
+                        Debug.Log("<color=yellow>[EZAvatar]</color>: Category already exists! Try a different name.");
                         debug = Helper.SetTextColor("Category already exists! Try a different name.", "yellow");
                     }
                 }
