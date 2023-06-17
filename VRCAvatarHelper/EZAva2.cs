@@ -21,7 +21,9 @@ namespace EZAva2
         public List<AnimationClip> animClips = new List<AnimationClip>();
         public AnimatorControllerLayer layer = null;
         public List<AnimatorState> states = new List<AnimatorState>();
-        public bool switched = false;
+        public bool switched { get; set; }
+        public bool makeIdle { get; set; }
+        public bool layerExists { get; set; }
     }
 }
 
@@ -40,6 +42,12 @@ namespace EZAva2
             //Creating a new editor window, and then shows it
             EZAvatar window = (EZAvatar)GetWindow(typeof(EZAvatar));
             window.Show();
+            
+            Updater.CheckForUpdates(true);
+            AssetDatabase.importPackageStarted += Updater.onImportPackageStarted;
+            AssetDatabase.importPackageCompleted += Updater.onImportPackageSuccess;
+            AssetDatabase.importPackageCancelled += Updater.onImportPackageCancelled;
+            AssetDatabase.importPackageFailed += Updater.onImportPackageFailed;
         }
         private static GameObject previousAvatar;
         private static GameObject back;
@@ -51,7 +59,7 @@ namespace EZAva2
                 if (previousAvatar != avatar)
                 {
                     previousAvatar = avatar;
-                    Helper.HasFXLayer(0);
+                    Helper.HasFXLayer();
                     ReInitializeUI();               
                 }
 
@@ -61,8 +69,7 @@ namespace EZAva2
         public static AnimatorController controller = null;
         private bool MaterialFoldout;
         private bool GameObjFoldout;
-        private static Vector2 matScrollView;
-        private static Vector2 objScrollView;
+        private static Vector2 categoriesScrollView;
         public static List<Category> objCategories = new List<Category>();
         public static List<Category> matCategories = new List<Category>();
         private static string matEnterText;
@@ -73,6 +80,10 @@ namespace EZAva2
         public static bool completeAnimatorLogic = true;
         public static bool ignorePreviousStates = true;       
         public static bool autoCreateMenus = true;
+        public static bool autoSelectFolderWhenRun = true;
+        public static bool enableUnityDebugLogs = true;
+        
+        public static string Version = "v1.1.0";
 
         public enum CreationType
         {
@@ -85,21 +96,40 @@ namespace EZAva2
             //Sets up a gameobject slot within the editor window.
             avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
             //Label field to display debug results at the top of this editor window, easily viewable by the user. Debug text is changed over execution
-            EditorGUILayout.LabelField(debug);             
+            EditorGUILayout.LabelField(debug, new GUIStyle()
+            {
+                richText = true,
+                fontSize = 12,
+                wordWrap = true,
+                fontStyle = FontStyle.Normal
+            });          
             EditorGUILayout.BeginVertical();
 
             //Creates the foldout which holds settings
             settings = EditorGUILayout.Foldout(settings, "Settings", true);
             if (settings)
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginVertical("box");
                 GUILayout.Space(8);
 
                 completeAnimatorLogic = GUILayout.Toggle(completeAnimatorLogic, "Complete Animator Logic");
                 ignorePreviousStates = GUILayout.Toggle(ignorePreviousStates, "Ignore Previously Created States");
                 autoCreateMenus = GUILayout.Toggle(autoCreateMenus, "Automatically Create Menus");
+                autoSelectFolderWhenRun = GUILayout.Toggle(autoSelectFolderWhenRun, "Select Avatar Folder When Run");
+                enableUnityDebugLogs = GUILayout.Toggle(enableUnityDebugLogs, "Enable Unity Debug Console Logs");
 
-                EditorGUILayout.EndHorizontal();
+
+                if (GUILayout.Button("Reset", GUILayout.Width(75)))
+                {
+                    ReInitializeUI();
+                    completeAnimatorLogic = true;
+                    ignorePreviousStates = true;
+                    autoCreateMenus = true;
+                    autoSelectFolderWhenRun = true;
+                    enableUnityDebugLogs = true;
+                }
+                
+                EditorGUILayout.EndVertical();
             }
 
             if (GUILayout.Button("Run"))
@@ -120,45 +150,49 @@ namespace EZAva2
                     if (autoCreateMenus)
                         Algorithm.CreateMenus(ref matCategories, ref objCategories);
 
-                    watch.Stop();
                     Algorithm.elaspedTime = watch.Elapsed.TotalSeconds;
                     Helper.DisplayCreationResults();                  
                     ReInitializeUI();
                     EditorSceneManager.SaveOpenScenes();
+                    if (autoSelectFolderWhenRun)
+                        Helper.SelectAssetAtPath<UnityEngine.Object>($"Assets/Nin/EZAvatar/{avatar.name}");                   
                 }
                 else if (objCategories.Count() + matCategories.Count() == 0)
                 {
-                    debug = "Must create categories in order to run.";
-                    Debug.LogWarning(debug);
+                    Debug.LogWarning("Must create categories in order to run.");
+                    debug = Helper.SetTextColor("Must create categories in order to run.", "yellow");
                 }
                 else
                 {
-                    debug = "Missing avatar object.";
-                    Debug.LogWarning(debug);
+                    Debug.LogWarning("Missing avatar object.");
+                    debug = Helper.SetTextColor("Missing avatar object.", "yellow");
                 }
             }
 
+            if (GUILayout.Button("Check for Updates"))
+            {
+                Updater.CheckForUpdates(false);
+            }
+
             //Creates the foldout which holds material categories
+            categoriesScrollView = EditorGUILayout.BeginScrollView(categoriesScrollView);
             MaterialFoldout = EditorGUILayout.Foldout(MaterialFoldout, "Material", true);
             if (MaterialFoldout)
             {
-                matScrollView = EditorGUILayout.BeginScrollView(matScrollView);
                 DrawMaterialUI();
-                EditorGUILayout.EndScrollView();
             }                      
             GameObjFoldout = EditorGUILayout.Foldout(GameObjFoldout, "GameObject", true);
             if (GameObjFoldout)
             {
-                objScrollView = EditorGUILayout.BeginScrollView(objScrollView);
                 DrawGameObjUI();
-                EditorGUILayout.EndScrollView();
             }
+            EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
 
         void DrawMaterialUI()
         {           
-            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal("box");
             
             matEnterText = EditorGUILayout.TextField(matEnterText);
 
@@ -176,7 +210,7 @@ namespace EZAva2
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
-                        debug = "Category already exists! Try a different name.";
+                        debug = Helper.SetTextColor("Category already exists! Try a different name.", "yellow");
                     }
                 }
                 matEnterText = "";
@@ -193,11 +227,36 @@ namespace EZAva2
 
                 var name = matCategories[i].name;
                 EditorGUILayout.BeginVertical();
+                
+                EditorGUILayout.BeginHorizontal();
                 matCategories[i].foldout = EditorGUILayout.Foldout(matCategories[i].foldout, name, true);
+                if (matCategories[i].layerExists) {
+                    EditorGUILayout.LabelField("<color=008080ff> * </color>", new GUIStyle()
+                    {
+                        richText = true,
+                        fontSize = 16,
+                        alignment = TextAnchor.MiddleRight,
+                        fontStyle = FontStyle.Bold
+                    });
+                }
+                EditorGUILayout.EndHorizontal();
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
                 if (matCategories[i].foldout)
                 {
+                    
+                    if (Helper.DoesCategoryExistAndHaveStates(controller, matCategories[i].name) && !matCategories[i].layerExists)
+                        matCategories[i].layerExists = true;
+                    
+                    if (matCategories[i].layerExists)
+                    {
+                        EditorGUILayout.LabelField("<color=008080ff> Adding to existing layer </color>", new GUIStyle()
+                        {
+                            fontStyle = FontStyle.BoldAndItalic,
+                            richText = true,
+                        });
+                    }
+                                     
                     EditorGUILayout.BeginVertical();
                     matCategories[i].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].objects[0], typeof(GameObject), true);
 
@@ -238,7 +297,7 @@ namespace EZAva2
 
         void DrawGameObjUI()
         {
-            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal("box");
             
             objEnterText = EditorGUILayout.TextField(objEnterText);
 
@@ -256,7 +315,7 @@ namespace EZAva2
                     else
                     {
                         Debug.Log("Category already exists! Try a different name.");
-                        debug = "Category already exists! Try a different name.";
+                        debug = Helper.SetTextColor("Category already exists! Try a different name.", "yellow");
                     }
                 }
                 objEnterText = "";
@@ -275,12 +334,43 @@ namespace EZAva2
 
                 var name = objCategories[i].name;
                 EditorGUILayout.BeginVertical();
+
+                EditorGUILayout.BeginHorizontal();
                 objCategories[i].foldout = EditorGUILayout.Foldout(objCategories[i].foldout, name, true);
+                if (objCategories[i].layerExists) {
+                    EditorGUILayout.LabelField("<color=008080ff> * </color>", new GUIStyle() {
+                        richText = true,
+                        fontSize = 16,
+                        alignment = TextAnchor.MiddleRight,
+                        fontStyle = FontStyle.Bold
+                    });
+                }
+                EditorGUILayout.EndHorizontal();
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
                 if (objCategories[i].foldout)
                 {
+                    if (Helper.DoesCategoryExistAndHaveStates(controller, $"Toggle {objCategories[i].name}") && !objCategories[i].layerExists)
+                    {
+                        objCategories[i].layerExists = true;
+                        objCategories[i].makeIdle = true;
+                    }
+
+                    if (objCategories[i].layerExists) {
+                        EditorGUILayout.LabelField("<color=008080ff> Adding to existing layer </color>", new GUIStyle() {
+                            fontStyle = FontStyle.BoldAndItalic,
+                            richText = true,
+                        });
+                    }
+
                     EditorGUILayout.BeginVertical();
+
+                    if (!objCategories[i].layerExists && objCategories[i].slots > 1)
+                        objCategories[i].makeIdle = GUILayout.Toggle(objCategories[i].makeIdle, "Toggle Objects Separately");
+                    else if (!objCategories[i].layerExists && objCategories[i].slots <= 1)
+                        objCategories[i].makeIdle = false;
+        
+                    EditorGUILayout.Space(1);
                     for (int j = 0; j < objCategories[i].slots; j++)
                     {
                         Array.Resize(ref objCategories[i].objects, objCategories[i].slots);
@@ -311,14 +401,14 @@ namespace EZAva2
                 GUILayout.EndHorizontal();
             }
         }
-     
+    
         public static void ReInitializeUI()
         {
             matEnterText = "";
             objEnterText = "";
             matCategories.Clear();
             objCategories.Clear();           
-        }      
+        }   
     }
 
 

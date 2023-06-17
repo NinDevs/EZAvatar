@@ -17,6 +17,7 @@ namespace EZAva2
         public static int statesCompleted = 0;
         public static int menusCompleted = 0;
         public static double elaspedTime = 0;
+        public static int animsCreated = 0;
         
         public static void SetupMaterialToggles(ref List<Category> matCategories)
         {
@@ -43,11 +44,10 @@ namespace EZAva2
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
 
-                EZAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
-                Debug.Log(EZAvatar.debug);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Found {clipcount} animation clips for category {layername}...");
 
-                bool layerExists = ControllerUtil.GetLayerByName(ref controller, layername) != null ? true : false;
-                int counter = layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
+                int counter = matCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
                 //Variable for animator transition condition threshold values
                 int conditioncount = 0;
 
@@ -59,7 +59,7 @@ namespace EZAva2
                     var parametername = layername + "Mat";
 
                     //Opt for on/off logic if we have 2 animclips and the layer is yet to be made, to optimize the transitions
-                    if (clipcount == 2 && !layerExists)
+                    if (clipcount == 2 && !matCategories[i].layerExists)
                     {
                         //Creates new layer in the animator, if it doesn't exist
                         if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
@@ -104,7 +104,7 @@ namespace EZAva2
                     }
 
                     //Add states normally or detect that a layer already has 2 states and change the bool on/off transitions to any state transitions
-                    else if (clipcount == 2 && layerExists && ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() == 2)
+                    else if (clipcount == 2 && matCategories[i].layerExists && ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() == 2)
                     {
 
                         layer = ControllerUtil.GetLayerByName(ref controller, layername);
@@ -218,69 +218,186 @@ namespace EZAva2
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
 
-                EZAvatar.debug = $"Found {clipcount} animation clips for category {layername}...";
-                Debug.Log(EZAvatar.debug);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Found {clipcount} animation clips for category {layername}...");
 
-                var cleared = false;
-
-                for (int y = 0; y < clipcount; y++)
+                // ON/OFF regular bool toggles 
+                if (!objCategories[i].makeIdle)
                 {
-                    var statename = clips[y].name;
-                    var parametername = layername;
+                    var cleared = false;
 
-                    if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
+                    for (int y = 0; y < clipcount; y++)
                     {
-                        controller.AddLayer(layername);
-                        layersCompleted++;
-                    }
-                    
-                    layer = ControllerUtil.GetLayerByName(ref controller, layername);
-                    objCategories[i].layer = layer;
-                    ControllerUtil.SetLayerWeight(controller, layer, 1);   
+                        var statename = clips[y].name;
+                        var parametername = layername;
 
-                    //Removes states if we are not ignoring previous states
-                    if (!EZAvatar.ignorePreviousStates && !cleared)
-                    {
-                        ControllerUtil.RemoveStates(layer);
-                        cleared = true;
-                    }
+                        if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
+                        {
+                            controller.AddLayer(layername);
+                            layersCompleted++;
+                        }
 
-                    //Adds bool parameter if there are only two anims we are working with
-                    if (ControllerUtil.GetParameterByName(controller, parametername) == null)
-                    {                     
-                        controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
-                        ControllerUtil.TurnOnParameterBool(controller, parametername);
-                    }
+                        layer = ControllerUtil.GetLayerByName(ref controller, layername);
+                        objCategories[i].layer = layer;
+                        ControllerUtil.SetLayerWeight(controller, layer, 1);
 
-                    //Adds new parameter to expressions menu if missing
-                    if (expressionParametersMenu.FindParameter(parametername) == null)
-                        VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
-                 
-                    states[y] = layer.stateMachine.AddState(statename, new Vector3(360, y * 55));
-                    statesCompleted++;
+                        //Removes states if we are not ignoring previous states
+                        if (!EZAvatar.ignorePreviousStates && !cleared)
+                        {
+                            ControllerUtil.RemoveStates(layer);
+                            cleared = true;
+                        }
 
-                    //When both states have been created
-                    if (states.Count() ==  2 && y == clipcount - 1)
-                    {
-                        //Creates a transition that will start from the first state to the second state
-                        layer.stateMachine.states[0].state.AddTransition(layer.stateMachine.states[1].state);
-                        ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[0].state.transitions[0], false, 0, false, 0);
-                        layer.stateMachine.states[0].state.transitions[0].AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
-                        //Set state motion to ON anim clip
-                        layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) != null ?
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) :
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, "Multi-Toggles");
+                        //Adds bool parameter if there are only two anims we are working with
+                        if (ControllerUtil.GetParameterByName(controller, parametername) == null)
+                        {
+                            controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
+                            ControllerUtil.TurnOnParameterBool(controller, parametername);
+                        }
 
-                        //Creates a transition that will start from the second state to the first state
-                        layer.stateMachine.states[1].state.AddTransition(layer.stateMachine.states[0].state);
-                        ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[1].state.transitions[0], false, 0, false, 0);
-                        layer.stateMachine.states[1].state.transitions[0].AddCondition(AnimatorConditionMode.If, 1, parametername);
-                        //Set state motion to OFF anim clip
-                        layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) != null ?
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) :
-                            AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, "Multi-Toggles");
+                        //Adds new parameter to expressions menu if missing
+                        if (expressionParametersMenu.FindParameter(parametername) == null)
+                            VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
+
+                        states[y] = layer.stateMachine.AddState(statename, new Vector3(360, y * 55));
+                        objCategories[i].states.Add(states[y]);
+                        statesCompleted++;
+
+                        //When both states have been created
+                        if (states.Count() == 2 && y == clipcount - 1)
+                        {
+                            //Creates a transition that will start from the first state to the second state
+                            layer.stateMachine.states[0].state.AddTransition(layer.stateMachine.states[1].state);
+                            ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[0].state.transitions[0], false, 0, false, 0);
+                            layer.stateMachine.states[0].state.transitions[0].AddCondition(AnimatorConditionMode.IfNot, 1, parametername);
+                            //Set state motion to ON anim clip
+                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) != null ?
+                                AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, objCategories[i].objects[0].name) :
+                                AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("ON")).First().name, "Multi-Toggles");
+
+                            //Creates a transition that will start from the second state to the first state
+                            layer.stateMachine.states[1].state.AddTransition(layer.stateMachine.states[0].state);
+                            ControllerUtil.ApplyTransitionSettings(ref layer.stateMachine.states[1].state.transitions[0], false, 0, false, 0);
+                            layer.stateMachine.states[1].state.transitions[0].AddCondition(AnimatorConditionMode.If, 1, parametername);
+                            //Set state motion to OFF anim clip
+                            layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) != null ?
+                                AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, objCategories[i].objects[0].name) :
+                                AnimUtil.LoadAnimClip(clips.Where(x => x.name.Contains("OFF")).First().name, "Multi-Toggles");
+                        }
                     }
                 }
+                // Idle logic 
+                else
+                {
+                    int paramCounter = objCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
+                    var cleared = false;
+
+                    for (int y = 0; y < clipcount; y++)
+                    {
+                        if (clips[y].name.Contains("Idle"))
+                            continue;
+                        var statename = clips[y].name;
+                        var parametername = layername;
+                        bool createdState = false;
+
+                        if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
+                        {
+                            controller.AddLayer(layername);
+                            layersCompleted++;
+                        }
+
+                        layer = ControllerUtil.GetLayerByName(ref controller, layername);
+                        objCategories[i].layer = layer;
+                        ControllerUtil.SetLayerWeight(controller, layer, 1);
+
+                        if (!EZAvatar.ignorePreviousStates && !cleared)
+                        {
+                            ControllerUtil.RemoveStates(layer);
+                            cleared = true;
+                        }
+
+                        if (EZAvatar.ignorePreviousStates && layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
+                        {                          
+                            layer.stateMachine.RemoveState(layer.stateMachine.states[1].state);
+
+                            var previousStateName = layer.stateMachine.states[0].state.name;
+                            var previousStateClip = layer.stateMachine.states[0].state.motion.name;
+
+                            layer.stateMachine.RemoveState(layer.stateMachine.states[0].state);
+
+                            states[y] = layer.stateMachine.AddState("Toggles Idle", new Vector3(31, -45));                           
+                            objCategories[i].states.Add(states[y]);
+                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name);
+
+                            //Readd the state with the previous clip. This is just so that the default state is always the idle state, we delete the previous state and readd after idle state creation
+                            layer.stateMachine.AddState(previousStateName, new Vector3(360, 55));
+                            objCategories[i].states.Add(layer.stateMachine.states.Where(x => x.state.name == previousStateName).ToList()[0].state);
+                            layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(previousStateClip, previousStateClip.Substring(0, previousStateClip.LastIndexOf('O'))) != null ?
+                                AnimUtil.LoadAnimClip(previousStateClip, previousStateClip.Substring(0, previousStateClip.LastIndexOf('O'))) :
+                                AnimUtil.LoadAnimClip(previousStateClip, "Multi-Toggles");
+
+                            ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);
+                            objCategories[i].switched = true;
+
+                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[0].state);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
+                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, 0, parametername);
+                                               
+                            var anyStateTransition2 = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[1].state);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition2, false, 0, false, 0);
+                            anyStateTransition2.AddCondition(AnimatorConditionMode.Equals, 1, parametername);
+                        
+                            paramCounter = 2;
+                            EditorUtility.SetDirty(layer.stateMachine);
+                        }
+
+                        if (ControllerUtil.GetParameterByName(controller, parametername) == null)
+                        {
+                            controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
+                        }
+
+                        if (expressionParametersMenu.FindParameter(parametername) == null)
+                            VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int, 0, parametername);
+
+                        //Creates idle state if it does not exist
+                        if (layer.stateMachine.states.Count() == 0)
+                        {
+                            states[y] = layer.stateMachine.AddState("Toggles Idle", new Vector3(31, -45));
+                            objCategories[i].states.Add(states[y]);
+                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name);
+                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[0].state);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
+                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, 0, parametername);
+                            paramCounter = 1;
+                        }
+
+                        if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
+                        {
+                            states[y] = layer.stateMachine.AddState(statename, new Vector3(360, paramCounter * 55));
+                            objCategories[i].states.Add(states[y]);
+                            statesCompleted++;
+                            createdState = true;
+                        }
+
+                        //When both states have been created
+                        if (layer.stateMachine.states.Count() >= 2 && createdState)
+                        {
+                            //Creates a transition that will start from the idle state to the new state
+                            var statecount = layer.stateMachine.states.Count() - 1;
+                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[statecount].state);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
+                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, paramCounter, parametername);
+                            //Set new state motion to ON anim clip
+                            layer.stateMachine.states[statecount].state.motion = AnimUtil.LoadAnimClip(clips[y].name, objCategories[i].name) != null ?
+                                AnimUtil.LoadAnimClip(clips[y].name, objCategories[i].name) :
+                                AnimUtil.LoadAnimClip(clips[y].name, "Multi-Toggles");
+
+                            paramCounter++;
+                            createdState = false;
+                        }
+                    }              
+                }
+             
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -291,7 +408,7 @@ namespace EZAva2
             var controller = EZAvatar.controller;
             var expressionsMenu = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu;
 
-            VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu AccessoriesMainMenu = null;
+            VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu TogglesMainMenu = null;
             VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu ColorsMainMenu = null;
 
             var mCategoryCount = matCategories.Count();
@@ -301,22 +418,26 @@ namespace EZAva2
             if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus"))
             {
                 Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus");
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Created directory 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus'");
                 AssetDatabase.Refresh();
             }
 
             //If an accessories/colors menu already exists for this avatar, we load that menu and add to it.
             //Otherwise we create new menus.
-            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset") && oCategoryCount > 0) {
-                AccessoriesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
-                EditorUtility.SetDirty(AccessoriesMainMenu);
+            if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Toggles.asset") && oCategoryCount > 0) {
+                TogglesMainMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Toggles.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                EditorUtility.SetDirty(TogglesMainMenu);
             }
                 
             else if (oCategoryCount > 0)
             {
-                AccessoriesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
-                AccessoriesMainMenu.name = "Accessories";
-                AssetDatabase.CreateAsset(AccessoriesMainMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Accessories.asset");
-                EditorUtility.SetDirty(AccessoriesMainMenu);
+                TogglesMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();          
+                TogglesMainMenu.name = "Toggles";
+                AssetDatabase.CreateAsset(TogglesMainMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Toggles.asset");
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Created main menu for toggles at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Toggles.asset");
+                EditorUtility.SetDirty(TogglesMainMenu);
                 menusCompleted++;
             }
 
@@ -330,6 +451,8 @@ namespace EZAva2
                 ColorsMainMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                 ColorsMainMenu.name = "Colors";
                 AssetDatabase.CreateAsset(ColorsMainMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Colors.asset");
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Created main menu for material swaps at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Colors.asset");
                 EditorUtility.SetDirty(ColorsMainMenu);
                 menusCompleted++;
             }
@@ -347,14 +470,13 @@ namespace EZAva2
                 EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionsMenu = newExMenu;
                 expressionsMenu = newExMenu;               
 
-                EZAvatar.debug = "Missing expressions menu, created a new expressions menu...";
-                Debug.Log(EZAvatar.debug);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Avatar is missing expressions menu, created a new expressions menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
                 menusCompleted++;
                 
                 AssetDatabase.SaveAssets();
             }
-            EditorUtility.SetDirty(expressionsMenu);
-
+            
             //Add these newly created menus (accessory/colors) to the main menu if they are not already present
             if (expressionsMenu.controls.Find(x => x.name == ColorsMainMenu?.name) == null && mCategoryCount > 0)
             {
@@ -366,294 +488,263 @@ namespace EZAva2
                 });
             }
 
-            if (expressionsMenu.controls.Find(x => x.name == AccessoriesMainMenu?.name) == null && oCategoryCount > 0)
+            if (expressionsMenu.controls.Find(x => x.name == TogglesMainMenu?.name) == null && oCategoryCount > 0)
             {
                 expressionsMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                 {
-                    name = AccessoriesMainMenu.name,
+                    name = TogglesMainMenu.name,
                     type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                    subMenu = AccessoriesMainMenu
+                    subMenu = TogglesMainMenu
                 });
             }
+
+            EditorUtility.SetDirty(expressionsMenu);
 
             if (EZAvatar.autoCreateMenus)
             {
                 //Count for extra menus
                 var index = 0;
 
-                var currentAccessoryMain = AccessoriesMainMenu;
+                //Creates menus for gameobjects
+                if (oCategoryCount > 0)
+                    GenerateMenus(ref oCategoryCount, ref objCategories, ref ExtraMenus, ref TogglesMainMenu, ref index, EZAvatar.CreationType.GameObject);
+             
+                //Creates menus for materials 
+                if (mCategoryCount > 0)
+                    GenerateMenus(ref mCategoryCount, ref matCategories, ref ExtraMenus, ref ColorsMainMenu, ref index, EZAvatar.CreationType.Material);
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
 
-                for (int i = 0; i < oCategoryCount; i++)
+        public static void GenerateMenus(ref int categoryCount, ref List<Category> category, ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu[] ExtraMenus, ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu mainMenu, ref int index, EZAvatar.CreationType type)
+        {
+            for (int i = 0; i < categoryCount; i++)
+            {
+                var currentMain = mainMenu;
+                var currlayername = category[i].layer.name;
+                var newStates = category[i].states;
+                
+                var totalStatesCount = category[i].layer.stateMachine.states.Count();
+                var newStatesCount = newStates.Count();
+
+                string parameterName = (type == EZAvatar.CreationType.Material) ? $"{currlayername}Mat" : $"{currlayername}";
+                string boolControlName = (type == EZAvatar.CreationType.Material) ? $"{currlayername}" : currlayername.Substring(7);
+
+                var currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+                currentMenu.name = category[i].name;
+
+                bool isLoaded = false;
+
+                if (Helper.DoesMenuExist(currentMenu.name, true))
                 {
-                    var currlayername = objCategories[i].layer.name;
-                    var states = objCategories[i].layer.stateMachine.states;
-                    var controlname = currlayername.Substring(7);
-                    
-                    objmenustart:
-
-                    //Add toggle controls to the current menu until it reaches 8, in which the last control will be a new menu to continue iterating
-                    if (currentAccessoryMain.controls.Count() < 8)
+                    currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                    //Get latest nested menu
+                    while (currentMenu.controls.Last().subMenu != null)
                     {
-                        currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                        {
-                            name = controlname,
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = currlayername },
-                            value = 1
-                        });                  
+                        currentMenu = currentMenu.controls.Last().subMenu;
+                    }
+                    isLoaded = true;
+                    //If we switched from bool parameter with 2 toggles to int, we will redo the menu as to include the prior states as toggles
+                    if (category[i].switched == true && currentMenu.controls.Count() == 1)
+                        currentMenu.controls.Clear();
+                }
+
+                creationstart:
+
+                //If the material toggle is a bool instead of int, we don't need to iterate through each state, we just need to make one control toggle
+                if (ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
+                {
+                    currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = boolControlName,
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                        parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName },
+                        value = 1
+                    });
+
+                    currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = currentMenu.name,
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                        subMenu = currentMenu
+                    });
+
+                    if (!Helper.DoesMenuExist(currentMenu.name, true))
+                    {
+                        AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                        if (EZAvatar.enableUnityDebugLogs)
+                            Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMenu.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                        menusCompleted++;
                     }
 
-                    //Once we reach 8 controls, we will create a new menu to store additional toggles
-                    else if (currentAccessoryMain.controls.Count() == 8 && i + 1 <= oCategoryCount)
+                    AssetDatabase.SaveAssets();
+                    currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+                    //Skip to next category
+                    continue;
+                }
+
+                //If the main menu reaches 8 control limit and there are more layers to go through, we create a new main menu to continue iterating
+                if (currentMain.controls.Count() == 8 && i + 1 <= categoryCount)
+                {
+                    var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+                    var menuNameCount = 0;
+
+                    while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMain.name}More{menuNameCount}.asset") != false)
                     {
-                        ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();                      
+                        menuNameCount++;
+                    }
+
+                    AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}More{menuNameCount}.asset");
+                    if (EZAvatar.enableUnityDebugLogs)
+                        Debug.Log($"<color=green>[EZAvatar]</color>: Created a new menu page for {currentMain.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMain.name}More{menuNameCount}.asset");
+                    menusCompleted++;
+
+                    currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = "More",
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                        subMenu = nextmain
+                    });
+
+                    if (!Helper.DoesMenuExist(currentMain.name, false))
+                    {
+                        AssetDatabase.CreateAsset(currentMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}.asset");
+                        if (EZAvatar.enableUnityDebugLogs)
+                            Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMain.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}.asset");
+                        menusCompleted++;
+                    }
+
+                    nextmain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = currentMenu.name,
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                        subMenu = currentMenu
+                    });
+
+                    currentMain = nextmain;
+
+                    AssetDatabase.SaveAssets();
+                }
+                //Fetch last nested main menu 
+                else if (currentMain.controls.Count() == 9 && currentMain.controls.Where(x => x.name == "More") != null)
+                {
+                    while (currentMain.controls.Where(x => x.name == "More") != null)
+                    {
+                        currentMain = currentMain.controls.Where(x => x.name == "More").ToList()[0].subMenu;
+                        goto creationstart;
+                    }
+                }
+
+                for (int y = 0; y < newStates.Count(); y++)
+                {
+                    if (type == EZAvatar.CreationType.GameObject && newStates[y].name.Equals("Toggles Idle"))
+                        continue;
+
+                    //Add new control per state in the current layer, until we reach 8 controls, in which the last one will be an additional menu for further iteration
+                    if (currentMenu.controls.Count() < 8)
+                    {
+                        var control = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        {
+                            name = (type == EZAvatar.CreationType.Material) ? $"{newStates[y].name}" : newStates[y].name.Substring(0, newStates[y].name.LastIndexOf('O')).ToString(),
+                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName },
+                            value = isLoaded ? totalStatesCount - newStatesCount + y : y
+                        };
+                       
+                        currentMenu.controls.Add(control);
+
+                        //If there are no more states to iterate through for this category, that means the menu is finished, and we should export it and add to the main menu.
+                        if (y == newStates.Count() - 1 && !currentMenu.name.Contains("More"))
+                        {
+                            var maincontrol = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                            {
+                                name = currentMenu.name,
+                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                                subMenu = currentMenu
+                            };
+
+                            if (currentMain.controls.Any(x => x.name == currentMenu.name) != true)
+                                currentMain.controls.Add(maincontrol);
+
+                            if (!Helper.DoesMenuExist(currentMenu.name, true))
+                            {
+                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                                if (EZAvatar.enableUnityDebugLogs)
+                                    Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMenu.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                                menusCompleted++;
+                            }
+
+                        }
+
+                    }
+
+                    //If we reach the end of the current menu and there are still more states to consider, create a new menu
+                    else if (currentMenu.controls.Count() == 8 && y + 1 <= newStates.Count())
+                    {
+                        var namecount = 0;
+                        ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+
                         index++;
                         Array.Resize(ref ExtraMenus, index + 1);
 
-                        var accMenuNameCount = 0;
-
-                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/AccessoriesMore{accMenuNameCount}.asset") != false){
-                            accMenuNameCount++;
+                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMain.name}More{namecount}.asset") != false)
+                        {
+                            namecount++;
                         }
 
-                        ExtraMenus[index - 1].name = $"AccessoriesMore{accMenuNameCount}";
-                        AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{ExtraMenus[index - 1].name}.asset");
-                        menusCompleted++;
+                        ExtraMenus[index - 1].name = $"{currlayername}More{namecount}";
 
-                        currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        if (!Helper.DoesMenuExist(ExtraMenus[index - 1].name, true))
+                        {
+                            AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                            if (EZAvatar.enableUnityDebugLogs)
+                                Debug.Log($"<color=green>[EZAvatar]</color>: Created a new menu page for {currentMenu.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                            menusCompleted++;
+                        }
+
+                        else
+                            ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+
+                        currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
                             name = "More",
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                             subMenu = ExtraMenus[index - 1]
                         });
-                        
-                        if (!Helper.DoesMenuExist(currentAccessoryMain.name, false)) {
-                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
+                        //Export our current menu
+                        if (!Helper.DoesMenuExist(currentMenu.name, true))
+                        {
+                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                            if (EZAvatar.enableUnityDebugLogs)
+                                Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMenu.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
                             menusCompleted++;
                         }
 
-                        AssetDatabase.SaveAssets();
-
-                        currentAccessoryMain = ExtraMenus[index - 1];
-
-                        currentAccessoryMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                        {
-                            name = controlname,
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = currlayername },
-                            value = 1
-                        });
-                    }
-                    //Fetch last nested main menu if current main menu is full
-                    else if (currentAccessoryMain.controls.Count() == 9 && currentAccessoryMain.controls.Last().subMenu != null)
-                    {
-                        while (currentAccessoryMain.controls.Last().subMenu != null)
-                        {
-                            currentAccessoryMain = currentAccessoryMain.controls.Last().subMenu;
-                        }
-                        goto objmenustart;
-                    }
-                    //When we have reached the end
-                    if (i == oCategoryCount - 1) {                       
-                        
-                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset"))  {
-                            AssetDatabase.CreateAsset(currentAccessoryMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentAccessoryMain.name}.asset");
-                            menusCompleted++;
-                        }
-  
-                    }
-
-                }
-
-                //Creates menus for materials 
-                for (int i = 0; i < mCategoryCount; i++)
-                {
-                    var currentColorMain = ColorsMainMenu;
-                    var currlayername = matCategories[i].layer.name;
-                    var states = matCategories[i].states;
-
-                    var currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
-                    currentMenu.name = matCategories[i].name;
-
-                    bool isLoaded = false;
-                    
-                    if (Helper.DoesMenuExist(currentMenu.name, true)) {
-                        currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
-                        //Get latest nested menu
-                        while (currentMenu.controls.Last().subMenu != null) {
-                            currentMenu = currentMenu.controls.Last().subMenu;
-                        }
-                        isLoaded = true;
-                        //If we switched from bool parameter with 2 toggles to int, we will redo the menu as to include the prior states as toggles
-                        if (matCategories[i].switched == true)                          
-                            VRCUtil.SwitchedParameter(ref currentMenu, ref matCategories[i].layer, states);
-                    }
-                                        
-                    matmenustart:
-
-                    //If the material toggle is a bool instead of int, we don't need to iterate through each state, we just need to make one control toggle
-                    if (ControllerUtil.GetParameterByName(controller, $"{currlayername}Mat").type == AnimatorControllerParameterType.Bool)
-                    {
-                        currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                        {
-                            name = currlayername,
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
-                            value = 1
-                        });
-
-                        currentColorMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                        //Add this current full menu to the main menu
+                        currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
                             name = currentMenu.name,
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
                             subMenu = currentMenu
                         });
 
-                        if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                            AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
-                            menusCompleted++;
-                        }
-                        //Skip to next category
-                        continue;
-                    }
-
-                    //If the main menu reaches 8 control limit and there are more layers to go through, we create a new main menu to continue iterating
-                    if (currentColorMain.controls.Count() == 8 && i + 1 <= mCategoryCount)
-                    {
-                        var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
-                        var matMenuNameCount = 0;
-
-                        while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/ColorsMore{matMenuNameCount}.asset") != false) {
-                            matMenuNameCount++;
-                        }
-                       
-                        AssetDatabase.CreateAsset(nextmain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/ColorsMore{matMenuNameCount}.asset");
-                        menusCompleted++;
-
-                        currentColorMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                        {
-                            name = "More",
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                            subMenu = nextmain
-                        });
-
-                        if (!Helper.DoesMenuExist(currentColorMain.name, false))
-                        {
-                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
-                            menusCompleted++;
-                        }
-
-                        currentColorMain = nextmain;
                         AssetDatabase.SaveAssets();
-                    }
-                    //Fetch last nested main menu 
-                    else if (currentColorMain.controls.Count() == 9 && currentColorMain.controls.Last().subMenu != null)
-                    {
-                        while (currentColorMain.controls.Last().subMenu != null)
-                        {
-                            currentColorMain = currentColorMain.controls.Last().subMenu;
-                            goto matmenustart;
-                        }
-                    }
-                  
-                    for (int y = 0; y < states.Count(); y++)
-                    {
-                        //Add new control per state in the current layer, until we reach 8 controls, in which the last one will be an additional menu for further iteration
-                        if (currentMenu.controls.Count() < 8)
-                        {
-                            var control = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                            {
-                                name = $"{states[y].name}",
-                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                                parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{currlayername}Mat" },
-                                value = isLoaded ? matCategories[i].layer.stateMachine.states.Count() - 1 + y : y
-                            };
 
-                            currentMenu.controls.Add(control);
-
-                            //If there are no more states to iterate through for this category, that means the menu is finished, and we should export it and add to the main menu.
-                            if (y == states.Count() - 1 && !currentMenu.name.Contains("More"))
-                            {
-                                var maincontrol = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                                {
-                                    name = currentMenu.name,
-                                    type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                                    subMenu = currentMenu
-                                };
-
-                                if (currentColorMain.controls.Any(x => x.name == currentMenu.name) != true)
-                                    currentColorMain.controls.Add(maincontrol);
-
-                                if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                                    AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
-                                    menusCompleted++;
-                                }
-
-                            }
-
-                        }
-
-                        //If we reach the end of the current menu and there are still more states to consider, create a new menu
-                        else if (currentMenu.controls.Count() == 8 && y + 1 <= states.Count())
-                        {
-                            var colornamecount = 0;
-                            ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
-
-                            index++;
-                            Array.Resize(ref ExtraMenus, index + 1);
-
-                            while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currlayername}More{colornamecount}.asset") != false) {
-                                colornamecount++;
-                            }
-
-                            ExtraMenus[index - 1].name = $"{currlayername}More{colornamecount}";
-
-                            if (!Helper.DoesMenuExist(ExtraMenus[index - 1].name, true)) {
-                                AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
-                                menusCompleted++;
-                            }
-
-                            else
-                                ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
-
-                            currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                            {
-                                name = "More",
-                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                                subMenu = ExtraMenus[index - 1]
-                            });
-                            //Export our current menu
-                            if (!Helper.DoesMenuExist(currentMenu.name, true)) {
-                                AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
-                                menusCompleted++;
-                            }
-
-                            //Add this current full menu to the main menu
-                            currentColorMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                            {
-                                name = currentMenu.name,
-                                type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                                subMenu = currentMenu
-                            });
-
-                            AssetDatabase.SaveAssets();
-
-                            currentMenu = ExtraMenus[index - 1];
-                        }                                          
-                    }
-                    //When we have reached the end
-                    if (i == mCategoryCount - 1) {
-
-                        if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset")) {
-                            AssetDatabase.CreateAsset(currentColorMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentColorMain.name}.asset");
-                            AssetDatabase.SaveAssets();
-                            menusCompleted++;
-                        }
+                        currentMenu = ExtraMenus[index - 1];
                     }
                 }
+                //When we have reached the end
+                if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}.asset"))
+                {
+                    AssetDatabase.CreateAsset(currentMain, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}.asset");
+                    if (EZAvatar.enableUnityDebugLogs)
+                        Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMain.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMain.name}.asset");
+                    AssetDatabase.SaveAssets();
+                    menusCompleted++;
+                }
+
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
     }
 }

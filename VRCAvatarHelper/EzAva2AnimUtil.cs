@@ -146,16 +146,45 @@ namespace EZAva2
                 if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim"))
                 {
                     AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
-                    Debug.Log($"Created {clip.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
+                    if (EZAvatar.enableUnityDebugLogs)
+                        Debug.Log($"<color=green>[EZAvatar]</color>: Created {clip.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
+                    Algorithm.animsCreated++;
                 }
                 else
-                    Debug.Log($"Animation clip {clip.name} already exists within Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}, skipping...");
+                {
+                    if (EZAvatar.enableUnityDebugLogs)
+                        Debug.Log($"<color=green>[EZAvatar]</color>: Animation clip {clip.name} already exists within Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}, skipping...");
+                }
             }
             else
             {
-                EZAvatar.debug = "Avatar gameobject was not found.";
-                Debug.Log(EZAvatar.debug);
+                Debug.LogWarning("<color=yellow>[EZAvatar]</color>: Avatar gameobject was not found.");
+                EZAvatar.debug = Helper.SetTextColor("Avatar gameobject was not found.", "orange");
             }
+        }
+
+        public static int FindRendererMaterialIndex(ref SkinnedMeshRenderer renderer, Material[] materialsToSearch)
+        {
+            var index = 0;
+            SerializedObject matslotref = new SerializedObject(renderer);
+
+            /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
+            Of any of the materials in the category (mat list), which will allow us to find the proper element index of the material for reference.*/
+            for (int y = 0; y < matslotref.FindProperty("m_Materials.Array").arraySize; y++)
+            {
+                var material = renderer.sharedMaterials[y];
+                for (int j = 0; j < materialsToSearch.Count(); j++)
+                {
+                    SerializedObject mat = new SerializedObject(materialsToSearch[j]);
+                    if (mat.FindProperty("m_Name").stringValue == material.name)
+                    {
+                        index = y;
+                        break;
+                    }
+                }
+            }
+            
+            return index;
         }
 
         public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories)
@@ -167,6 +196,9 @@ namespace EZAva2
 
                 var materials = matCategories[i].materials;
                 var gameObj = matCategories[i].objects.FirstOrDefault();
+               
+                matCategories[i].name.Trim();
+                gameObj.name.Trim();
 
                 //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
                 //(just adding one material as a toggle where the layer already exists and has states).
@@ -175,9 +207,9 @@ namespace EZAva2
 
                 if (materials.Count() < 2 && !allowed)
                 {
-                    EZAvatar.debug = "Must provide a minimum of two materials! Base material and the swap materials.";
-                    Debug.Log(EZAvatar.debug);
-                    return;
+                    EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of two materials! Base material and the swap materials. Skipping over {matCategories[i].name}...", "yellow");
+                    Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Must provide a minimum of two materials! Base material and the swap materials. Skipping over {matCategories[i].name}...");
+                    continue;
                 }
 
                 if (materials.Count() >= 2 || allowed && materials.Count() >= 1)
@@ -185,29 +217,13 @@ namespace EZAva2
                     var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
                     if (render == null)
                     {
-                        EZAvatar.debug = "Mesh object was not found.";
-                        Debug.Log(EZAvatar.debug);
-                        return;
-                    }
-                    var index = 0;
-                    SerializedObject matslotref = new SerializedObject(render);
-
-                    /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
-                    Of any of the materials in the category, which will allow us to find the proper element index of the material for reference.*/
-                    for (int r = 0; r < matslotref.FindProperty("m_Materials.Array").arraySize; r++)
-                    {
-                        var material = render.sharedMaterials[r];
-                        for (int j = 0; j < materials.Count(); j++)
-                        {
-                            SerializedObject mat = new SerializedObject(materials[j]);
-                            if (mat.FindProperty("m_Name").stringValue == material.name)
-                            {
-                                index = r;
-                                break;
-                            }
-                        }
+                        EZAvatar.debug = Helper.SetTextColor($"Mesh object was not found in {matCategories[i].name}. Skipping...", "yellow");
+                        Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Mesh object was not found in {matCategories[i].name}. Skipping...");
+                        continue;
                     }
 
+                    var index = FindRendererMaterialIndex(ref render, materials);
+                    
                     //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
                     EditorCurveBinding binding = new EditorCurveBinding();
                     binding.type = typeof(SkinnedMeshRenderer);
@@ -229,7 +245,7 @@ namespace EZAva2
                         AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
 
                         matCategories[i].animClips.Add(clip);
-                        ExportClip(clip, gameObj.name);
+                        ExportClip(clip, matCategories[i].name);
                     }
                 }
             }
@@ -238,15 +254,85 @@ namespace EZAva2
             {
 
                 var gameObj = objCategories[i].objects;
+               
+                foreach (var obj in gameObj)
+                    obj.name.Trim();
+             
+                objCategories[i].name.Trim();
 
                 if (objCategories[i].objects[0] == null)
                 {
-                    EZAvatar.debug = "Must provide a minimum of one gameobject.";
-                    Debug.Log(EZAvatar.debug);
-                    return;
+                    EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of one gameobject. Skipping over {objCategories[i].name}...", "yellow");
+                    Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Must provide a minimum of one gameobject. Skipping over {objCategories[i].name}...");
+                    continue;
                 }
 
-                if (gameObj.Count() >= 1)
+                //Allows automatic conversion from on off to any state int toggles if we add to an existing layer that had previously two states and toggled via bool
+                bool wasOnOffLayer = (objCategories[i].layerExists == true && (ControllerUtil.GetParameterByName(EZAvatar.controller, $"Toggle {objCategories[i].name}")?.type == AnimatorControllerParameterType.Bool)) == true ? true : false;
+
+                //If we are using any state transitions for objects toggles instead of on/off
+                if (objCategories[i].makeIdle)
+                {
+                    var idleClip = File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{objCategories[i].name}/{objCategories[i].name}Idle.anim") ? LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name) : null;
+                    if (idleClip != null)
+                        EditorUtility.SetDirty(idleClip);
+                    if (wasOnOffLayer)
+                    {
+                        var onStateClip = ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {objCategories[i].name}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList()[0].state.motion as AnimationClip;
+#pragma warning disable CS0618 // Type or member is obsolete
+                        var onStateCurve = AnimationUtility.GetAllCurves(onStateClip)[0];
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                        var newCurve = new AnimationCurve();
+                        newCurve.AddKey(0, 0);
+                        newCurve.AddKey(1 / onStateClip.frameRate, 0);
+
+                        idleClip = new AnimationClip();
+                        idleClip.name = $"{objCategories[i].name}Idle";
+                        idleClip.SetCurve(onStateCurve.path, typeof(GameObject), "m_IsActive", newCurve);
+                    }
+
+                    for (int y = 0; y < gameObj.Count(); y++)
+                    {
+                        var onClip = new AnimationClip();
+                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+
+                        //Creates curves/keys for gameobject active, per object
+                        var onCurve = new AnimationCurve();
+                        onCurve.AddKey(0, 1);
+                        onCurve.AddKey(1 / onClip.frameRate, 1);
+                        onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
+
+                        onClip.name = $"{gameObj[y].name}ON";
+                        objCategories[i].animClips.Add(onClip);
+                        ExportClip(onClip, objCategories[i].name);
+
+                        if (idleClip != null)
+                        {
+                            var idleOffCurve = new AnimationCurve();
+                            idleOffCurve.AddKey(0, 0);
+                            idleOffCurve.AddKey(1 / idleClip.frameRate, 0);
+                            idleClip.SetCurve(path, typeof(GameObject), "m_IsActive", idleOffCurve);
+                        }
+                        else
+                        {
+                            idleClip = new AnimationClip();
+                            idleClip.name = $"{objCategories[i].name}Idle";
+                            var idleOffCurve = new AnimationCurve();
+                            idleOffCurve.AddKey(0, 0);
+                            idleOffCurve.AddKey(1 / idleClip.frameRate, 0);
+                            idleClip.SetCurve(path, typeof(GameObject), "m_IsActive", idleOffCurve);
+                            
+                            objCategories[i].animClips.Add(idleClip);
+                            ExportClip(idleClip, objCategories[i].name);
+                        }
+
+                    }
+                    
+                    if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{objCategories[i].name}/{objCategories[i].name}Idle.anim"))
+                        ExportClip(idleClip, objCategories[i].name);
+                }
+                else
                 {
                     var onClip = new AnimationClip();
                     var offClip = new AnimationClip();
@@ -291,9 +377,11 @@ namespace EZAva2
 
                         objCategories[i].animClips.Add(offClip);
                         ExportClip(offClip, "Multi-Toggles");
-                    }
-                }
-            }                       
+                    }                 
+                }            
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         public static AnimationClip LoadAnimClip(string clipname, string meshName)

@@ -37,12 +37,12 @@ namespace EZAva2
 
         public static bool DoesCategoryExistAndHaveStates(AnimatorController controller, string categoryName)
         {
-            var layers = controller.layers;
-            for (int i = 0; i < layers.Length; i++)
+            var layers = controller?.layers;
+            for (int i = 0; i < layers?.Length; i++)
             {
-                if (layers[i].name == categoryName)
+                if (layers[i]?.name == categoryName)
                 {
-                    if (layers[i].stateMachine.states.Length >= 2)
+                    if (layers[i]?.stateMachine.states.Length >= 2)
                     {
                         return true;
                     }
@@ -74,47 +74,50 @@ namespace EZAva2
 
         public static void DisplayCreationResults()
         {
-            EZAvatar.debug = $"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)";
-            Debug.Log(EZAvatar.debug);
+            EZAvatar.debug = SetTextColor($"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. " +
+                $"Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus at <a href='Assets/Nin/EZAvatar/{EZAvatar.avatar.name}'>Assets/Nin/EZAvatar/{EZAvatar.avatar.name}</a>. :)", "#1bfa53");
+            Debug.Log($"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)");
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
             Algorithm.menusCompleted = 0;
             Algorithm.elaspedTime = 0;
+            Algorithm.animsCreated = 0;
         }
 
-        public static bool HasFXLayer(int arg)
+        public static bool HasFXLayer()
         {
-            if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
+            EZAvatar.controller = null;
+            
+            if (EZAvatar.avatar?.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController != null)
             {
                 EZAvatar.controller = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;                             
+                
                 if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
                     EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
+
                 EditorUtility.SetDirty(EZAvatar.controller);
             }
 
-            if (EZAvatar.controller == null)
+            if (EZAvatar.controller == null && EZAvatar.avatar != null)
             {
-                EZAvatar.debug = "There is no FX Layer on this avatar! FX Layer animator controller is required for this script!";
-                Debug.Log(EZAvatar.debug);               
+                EZAvatar.debug = SetTextColor("There is no FX Layer on this avatar! FX Layer animator controller is required for this script!", "yellow");             
                 return false;
+            }
+
+            else if (EZAvatar.controller != null && EZAvatar.avatar != null)
+            {
+                EZAvatar.debug = SetTextColor("FX Layer found!", "#1bfa53");
+                return true;
             }
 
             else
             {
-                if (arg != 0)
-                {
-                    EZAvatar.debug = "FX Layer found! Proceeding . . . ";
-                    Debug.Log(EZAvatar.debug);
-                }
-                else
-                {
-                    EZAvatar.debug = "FX Layer found!";
-                    Debug.Log(EZAvatar.debug);
-                }
-                return true;
+                EZAvatar.debug = "";
             }
+
+            return false;
         }
 
         public static bool DoesMenuExist(string menu, bool isSub)
@@ -127,6 +130,18 @@ namespace EZAva2
 
             else
                 return false;
+        }
+
+        public static string SetTextColor(string debug, string color)
+        {
+            return $"<color={color}>{debug}</color>";
+        }
+
+        public static void SelectAssetAtPath<T>(string path)
+        {
+            var folder = AssetDatabase.LoadAssetAtPath(path, typeof(T));
+            Selection.activeObject = folder;
+            EditorGUIUtility.PingObject(folder);
         }
     }
   
@@ -155,31 +170,6 @@ namespace EZAva2
                     parameters.DeleteArrayElementAtIndex(i); 
             }
             parameters_S.ApplyModifiedProperties();
-        }
-
-        public static void SwitchedParameter(ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu menu, ref AnimatorControllerLayer layer, List<AnimatorState> states)
-        {
-            int count = 0;
-            menu.controls.Clear();
-            foreach (var state in layer.stateMachine.states)
-            {
-                foreach (var newstate in states)
-                {
-                    if (state.state != newstate)
-                    {
-                        var control = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
-                        {
-                            name = $"{state.state.name}",
-                            type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
-                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = $"{layer.name}Mat" },
-                            value = count
-                        };
-                        menu.controls.Add(control);
-                        count++;
-                    }
-                }               
-            }
-            AssetDatabase.SaveAssets();
         }
     }
 }
