@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
-using System.IO;
 
 namespace EZAva2
 {   
@@ -56,16 +55,18 @@ namespace EZAva2
         public static void onImportPackageStarted(string packagename)
         {
             Debug.Log($"<color=green>[EZAvatar]</color>: Fetched latest EZAvatar package ({packagename}), awaiting import..");
+            EZAvatar.debug = Helper.SetTextColor("Downloaded latest EZAvatar package, awaiting import..", "#4dcce8");
         }
 
         public static void onImportPackageCancelled(string packageName)
         {
-            Debug.Log($"<color=green>[EZAvatar]</color>: Cancelled the import of package: {packageName}");
+            Debug.Log($"<color=yellow>[EZAvatar]</color>: Cancelled the import of package: {packageName}");
+            EZAvatar.debug = Helper.SetTextColor("Import cancelled.", "yellow");
         }
 
         public static void onImportPackageFailed(string packagename, string errormessage)
         {
-            Debug.Log($"<color=green>[EZAvatar]</color> Exited from importing package: {packagename} with error: {errormessage}");
+            Debug.Log($"<color=red>[EZAvatar]</color> Exited from importing package: {packagename} with error: {errormessage}");
         }
 
         static async Task FetchLatestRelease(bool initCall)
@@ -84,9 +85,7 @@ namespace EZAva2
                         var downloadClient = new WebClient();
                         downloadClient.UseDefaultCredentials = true;
                         var dlUrl = $"https://github.com/NinDevs/EZAvatar/releases/download/{latestRelease.tag_name}/EZAvatar_{ParseToDLName(latestRelease.tag_name)}.unitypackage";
-                        Debug.Log(dlUrl);
-                        downloadClient.DownloadFile(new Uri(dlUrl), $"Assets/EZAvatar_{ParseToDLName(latestRelease.tag_name)}.unitypackage");
-                        EZAvatar.debug = Helper.SetTextColor("Downloaded latest EZAvatar package, awaiting import..", "#4dcce8");
+                        downloadClient.DownloadFile(new Uri(dlUrl), $"Assets/EZAvatar_{ParseToDLName(latestRelease.tag_name)}.unitypackage");                      
                     }
                 }
                 else
@@ -124,3 +123,5 @@ namespace EZAva2
         }
     }
 }
+
+#endif
