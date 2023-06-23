@@ -35,15 +35,24 @@ namespace EZAva2
         }
 
         public static void CheckForUpdates(bool initCall)
-        {          
+        {           
             var fetch = Task.Run(async () => { await FetchLatestRelease(initCall); });
             fetch.Wait();
             if (!isUpToDate && !initCall)
             {
+                SubscribeToPackageEvents();
                 AssetDatabase.Refresh();
                 AssetDatabase.ImportPackage($"Assets/EZAvatar_{ParseToDLName(fetched_tag)}.unitypackage", true);
                 AssetDatabase.DeleteAsset($"Assets/EZAvatar_{ParseToDLName(fetched_tag)}.unitypackage");
             }
+        }
+
+        private static void SubscribeToPackageEvents()
+        {
+            AssetDatabase.importPackageStarted += onImportPackageStarted;
+            AssetDatabase.importPackageCompleted += onImportPackageSuccess;
+            AssetDatabase.importPackageCancelled += onImportPackageCancelled;
+            AssetDatabase.importPackageFailed += onImportPackageFailed;
         }
 
         public static void onImportPackageSuccess (string packagename)

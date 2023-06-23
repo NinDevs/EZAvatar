@@ -163,14 +163,14 @@ namespace EZAva2
             }
         }
 
-        public static int FindRendererMaterialIndex(ref SkinnedMeshRenderer renderer, Material[] materialsToSearch)
+        public static int FindRendererMaterialIndex(ref dynamic renderer, Material[] materialsToSearch)
         {
             var index = 0;
-            SerializedObject matslotref = new SerializedObject(renderer);
+            SerializedObject render = new SerializedObject(renderer);
 
             /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
             Of any of the materials in the category (mat list), which will allow us to find the proper element index of the material for reference.*/
-            for (int y = 0; y < matslotref.FindProperty("m_Materials.Array").arraySize; y++)
+            for (int y = 0; y < render.FindProperty("m_Materials.Array").arraySize; y++)
             {
                 var material = renderer.sharedMaterials[y];
                 for (int j = 0; j < materialsToSearch.Count(); j++)
@@ -187,10 +187,23 @@ namespace EZAva2
             return index;
         }
 
+        public static dynamic FetchRenderer(GameObject obj, ref System.Type type)
+        {
+            if (obj?.GetComponent<SkinnedMeshRenderer>() != null)
+            {
+                type = typeof(SkinnedMeshRenderer);
+                return obj.GetComponent<SkinnedMeshRenderer>();
+            }
+            else if (obj?.GetComponent<MeshRenderer>() != null) 
+            {
+                type = typeof(MeshRenderer);
+                return obj.GetComponent<MeshRenderer>();
+            } 
+            else return null;
+        }
+
         public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories)
         {
-            var allowed = false;
-
             for (int i = 0; i < matCategories.Count(); i++)
             {
 
@@ -200,21 +213,17 @@ namespace EZAva2
                 matCategories[i].name.Trim();
                 gameObj.name.Trim();
 
-                //Checks to see if a category exists with 2 or more states, allowing just one material through in the case of the feature "Ignore Previous States"
-                //(just adding one material as a toggle where the layer already exists and has states).
-                if (Helper.DoesCategoryExistAndHaveStates(EZAvatar.controller, matCategories[i].name) == true)
-                    allowed = true;
-
-                if (materials.Count() < 2 && !allowed)
+                if (materials.Count() < 2)
                 {
-                    EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of two materials! Base material and the swap materials. Skipping over {matCategories[i].name}...", "yellow");
-                    Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Must provide a minimum of two materials! Base material and the swap materials. Skipping over {matCategories[i].name}...");
+                    EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of two materials! Base material and the swap material(s). Skipping over {matCategories[i].name}...", "yellow");
+                    Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Must provide a minimum of two materials! Base material and the swap material(s). Skipping over {matCategories[i].name}...");
                     continue;
                 }
 
-                if (materials.Count() >= 2 || allowed && materials.Count() >= 1)
+                if (materials.Count() >= 2)
                 {
-                    var render = gameObj?.GetComponent<SkinnedMeshRenderer>();
+                    System.Type rendertype = null;
+                    var render = FetchRenderer(gameObj, ref rendertype);                   
                     if (render == null)
                     {
                         EZAvatar.debug = Helper.SetTextColor($"Mesh object was not found in {matCategories[i].name}. Skipping...", "yellow");
@@ -226,9 +235,9 @@ namespace EZAva2
                     
                     //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
                     EditorCurveBinding binding = new EditorCurveBinding();
-                    binding.type = typeof(SkinnedMeshRenderer);
+                    binding.type = rendertype;
                     //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
-                    var path = render.gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+                    var path = rendertype == typeof(SkinnedMeshRenderer) ? ((SkinnedMeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1) : ((MeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
                     binding.path = path;
                     binding.propertyName = $"m_Materials.Array.data[{index}]";
 
@@ -245,7 +254,7 @@ namespace EZAva2
                         AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
 
                         matCategories[i].animClips.Add(clip);
-                        ExportClip(clip, matCategories[i].name);
+                        ExportClip(clip, matCategories[i].objects[0].name);
                     }
                 }
             }

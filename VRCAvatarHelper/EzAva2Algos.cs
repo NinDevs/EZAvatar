@@ -36,8 +36,6 @@ namespace EZAva2
 
             for (int i = 0; i < matCategories.Count; i++)
             {
-                //Bool to make boolean transition logic           
-                bool cleared = false;
                 var layername = matCategories[i].name;
                 var clips = matCategories[i].animClips;
                 int clipcount = matCategories[i].animClips.Count;
@@ -51,7 +49,8 @@ namespace EZAva2
                 //Variable for animator transition condition threshold values
                 int conditioncount = 0;
 
-                //Ignore Previous States bool is used as a setting, which decides if we will delete other states or not in an existing layer
+                if (!EZAvatar.ignorePreviousStates && matCategories[i].layerExists)
+                    ControllerUtil.RemoveStates(ControllerUtil.GetLayerByName(ref controller, layername));
 
                 for (int y = 0; y < clipcount; y++)
                 {
@@ -111,21 +110,11 @@ namespace EZAva2
                         matCategories[i].layer = layer;
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
                         var statemachine = layer.stateMachine;
-
-                        //Removes states if we are not ignoring previous states
-                        if (!EZAvatar.ignorePreviousStates && !cleared)
+                    
+                        if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                         {
-                            ControllerUtil.RemoveStates(layer);
-                            cleared = true;
-                        }
-                        //If we are have a layer that already has 2 states with on and off logic, and we are adding to that layer, we need to change the parameter to int
-                        if (EZAvatar.ignorePreviousStates)
-                        {
-                            if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
-                            {
-                                ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);                               
-                                matCategories[i].switched = true;
-                            }
+                            ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);                               
+                            matCategories[i].switched = true;
                         }
 
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
@@ -160,11 +149,6 @@ namespace EZAva2
                         //If we are adding states to an existing layer that already has states, set transition condition value variable to state count (ensures no overlapping values, int adds from where it left off in previous transitions)
                         if (statemachine.states.Count() > 0 && y == 0)
                             conditioncount = statemachine.states.Count();
-                        //Removes states if we are not ignoring previous states
-                        if (!EZAvatar.ignorePreviousStates && !cleared) {
-                            ControllerUtil.RemoveStates(layer);
-                            cleared = true;
-                        }
                         //Only adds the parameter if it does not already exist 
                         if (ControllerUtil.GetParameterByName(controller, parametername) == null)
                             controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
@@ -221,11 +205,12 @@ namespace EZAva2
                 if (EZAvatar.enableUnityDebugLogs)
                     Debug.Log($"<color=green>[EZAvatar]</color>: Found {clipcount} animation clips for category {layername}...");
 
+                if (!EZAvatar.ignorePreviousStates && objCategories[i].layerExists)
+                    ControllerUtil.RemoveStates(ControllerUtil.GetLayerByName(ref controller, layername));
+
                 // ON/OFF regular bool toggles 
                 if (!objCategories[i].makeIdle)
                 {
-                    var cleared = false;
-
                     for (int y = 0; y < clipcount; y++)
                     {
                         var statename = clips[y].name;
@@ -240,13 +225,6 @@ namespace EZAva2
                         layer = ControllerUtil.GetLayerByName(ref controller, layername);
                         objCategories[i].layer = layer;
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
-
-                        //Removes states if we are not ignoring previous states
-                        if (!EZAvatar.ignorePreviousStates && !cleared)
-                        {
-                            ControllerUtil.RemoveStates(layer);
-                            cleared = true;
-                        }
 
                         //Adds bool parameter if there are only two anims we are working with
                         if (ControllerUtil.GetParameterByName(controller, parametername) == null)

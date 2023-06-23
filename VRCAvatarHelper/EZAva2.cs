@@ -44,10 +44,6 @@ namespace EZAva2
             window.Show();
             
             Updater.CheckForUpdates(true);
-            AssetDatabase.importPackageStarted += Updater.onImportPackageStarted;
-            AssetDatabase.importPackageCompleted += Updater.onImportPackageSuccess;
-            AssetDatabase.importPackageCancelled += Updater.onImportPackageCancelled;
-            AssetDatabase.importPackageFailed += Updater.onImportPackageFailed;
         }
         private static GameObject previousAvatar;
         private static GameObject back;
@@ -83,7 +79,7 @@ namespace EZAva2
         public static bool autoSelectFolderWhenRun = true;
         public static bool enableUnityDebugLogs = true;
         
-        public static string Version = "v1.1.1";
+        public static string Version = "v1.1.2";
 
         public enum CreationType
         {
