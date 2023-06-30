@@ -30,8 +30,11 @@ namespace EZAva2
                 if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
                     Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
                 AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
-                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
-                AssetDatabase.SaveAssets();
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;              
+                expressionParametersMenu = newParametersMenu;
+                EditorUtility.SetDirty(expressionParametersMenu);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Missing parameters menu, created parameters menu  at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}'");
             }
 
             for (int i = 0; i < matCategories.Count; i++)
@@ -41,9 +44,6 @@ namespace EZAva2
                 int clipcount = matCategories[i].animClips.Count;
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
-
-                if (EZAvatar.enableUnityDebugLogs)
-                    Debug.Log($"<color=green>[EZAvatar]</color>: Found {clipcount} animation clips for category {layername}...");
 
                 int counter = matCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
                 //Variable for animator transition condition threshold values
@@ -73,7 +73,7 @@ namespace EZAva2
 
                         if (ControllerUtil.GetParameterByName(controller, parametername) == null) {
                             controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
-                            ControllerUtil.TurnOnParameterBool(controller, parametername);
+                            ControllerUtil.TurnOnParameterBool(ref controller, parametername);
                         }
 
                         if (expressionParametersMenu.FindParameter(parametername) == null)
@@ -174,8 +174,6 @@ namespace EZAva2
                     }                  
                 }
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         public static void SetupGameObjectToggles(ref List<Category> objCategories)
@@ -190,8 +188,10 @@ namespace EZAva2
                     Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
                 AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
                 EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
+                expressionParametersMenu = newParametersMenu;
+                EditorUtility.SetDirty(expressionParametersMenu);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Missing parameters menu, created parameters menu  at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}'");
             }
 
             for (int i = 0; i < objCategories.Count(); i++)
@@ -201,9 +201,6 @@ namespace EZAva2
                 var clipcount = clips.Count();
                 var layer = new AnimatorControllerLayer();
                 AnimatorState[] states = new AnimatorState[clipcount];
-
-                if (EZAvatar.enableUnityDebugLogs)
-                    Debug.Log($"<color=green>[EZAvatar]</color>: Found {clipcount} animation clips for category {layername}...");
 
                 if (!EZAvatar.ignorePreviousStates && objCategories[i].layerExists)
                     ControllerUtil.RemoveStates(ControllerUtil.GetLayerByName(ref controller, layername));
@@ -230,7 +227,7 @@ namespace EZAva2
                         if (ControllerUtil.GetParameterByName(controller, parametername) == null)
                         {
                             controller.AddParameter(parametername, AnimatorControllerParameterType.Bool);
-                            ControllerUtil.TurnOnParameterBool(controller, parametername);
+                            ControllerUtil.TurnOnParameterBool(ref controller, parametername);
                         }
 
                         //Adds new parameter to expressions menu if missing
@@ -266,14 +263,11 @@ namespace EZAva2
                 }
                 // Idle logic 
                 else
-                {
+                {                  
                     int paramCounter = objCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
-                    var cleared = false;
 
                     for (int y = 0; y < clipcount; y++)
                     {
-                        if (clips[y].name.Contains("Idle"))
-                            continue;
                         var statename = clips[y].name;
                         var parametername = layername;
                         bool createdState = false;
@@ -288,13 +282,7 @@ namespace EZAva2
                         objCategories[i].layer = layer;
                         ControllerUtil.SetLayerWeight(controller, layer, 1);
 
-                        if (!EZAvatar.ignorePreviousStates && !cleared)
-                        {
-                            ControllerUtil.RemoveStates(layer);
-                            cleared = true;
-                        }
-
-                        if (EZAvatar.ignorePreviousStates && layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
+                        if (layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                         {                          
                             layer.stateMachine.RemoveState(layer.stateMachine.states[1].state);
 
@@ -377,8 +365,6 @@ namespace EZAva2
                 }
              
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         public static void CreateMenus(ref List<Category> matCategories, ref List<Category> objCategories)
@@ -434,10 +420,7 @@ namespace EZAva2
                 EditorUtility.SetDirty(ColorsMainMenu);
                 menusCompleted++;
             }
-
-            //Instantiate array that will hold extra menus that are created
-            var ExtraMenus = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu[1];
-         
+        
             //Creates expression menu and add it to the avatar descriptor if it is missing
             if (expressionsMenu == null)
             {
@@ -452,7 +435,6 @@ namespace EZAva2
                     Debug.Log($"<color=green>[EZAvatar]</color>: Avatar is missing expressions menu, created a new expressions menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{newExMenu.name}.asset");
                 menusCompleted++;
                 
-                AssetDatabase.SaveAssets();
             }
             
             //Add these newly created menus (accessory/colors) to the main menu if they are not already present
@@ -480,23 +462,18 @@ namespace EZAva2
 
             if (EZAvatar.autoCreateMenus)
             {
-                //Count for extra menus
-                var index = 0;
-
                 //Creates menus for gameobjects
                 if (oCategoryCount > 0)
-                    GenerateMenus(ref oCategoryCount, ref objCategories, ref ExtraMenus, ref TogglesMainMenu, ref index, EZAvatar.CreationType.GameObject);
+                    GenerateMenus(ref oCategoryCount, ref objCategories, ref TogglesMainMenu, EZAvatar.CreationType.GameObject);
              
                 //Creates menus for materials 
                 if (mCategoryCount > 0)
-                    GenerateMenus(ref mCategoryCount, ref matCategories, ref ExtraMenus, ref ColorsMainMenu, ref index, EZAvatar.CreationType.Material);
+                    GenerateMenus(ref mCategoryCount, ref matCategories, ref ColorsMainMenu, EZAvatar.CreationType.Material);
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
-        public static void GenerateMenus(ref int categoryCount, ref List<Category> category, ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu[] ExtraMenus, ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu mainMenu, ref int index, EZAvatar.CreationType type)
-        {
+        public static void GenerateMenus(ref int categoryCount, ref List<Category> category, ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu mainMenu, EZAvatar.CreationType type)
+        {           
             for (int i = 0; i < categoryCount; i++)
             {
                 var currentMain = mainMenu;
@@ -556,7 +533,6 @@ namespace EZAva2
                         menusCompleted++;
                     }
 
-                    AssetDatabase.SaveAssets();
                     currentMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                     //Skip to next category
                     continue;
@@ -601,8 +577,6 @@ namespace EZAva2
                     });
 
                     currentMain = nextmain;
-
-                    AssetDatabase.SaveAssets();
                 }
                 //Fetch last nested main menu 
                 else if (currentMain.controls.Count() == 9 && currentMain.controls.Where(x => x.name == "More") != null)
@@ -660,36 +634,31 @@ namespace EZAva2
                     //If we reach the end of the current menu and there are still more states to consider, create a new menu
                     else if (currentMenu.controls.Count() == 8 && y + 1 <= newStates.Count())
                     {
+                        var nextMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                         var namecount = 0;
-                        ExtraMenus[index] = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
-
-                        index++;
-                        Array.Resize(ref ExtraMenus, index + 1);
 
                         while (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMain.name}More{namecount}.asset") != false)
                         {
                             namecount++;
                         }
 
-                        ExtraMenus[index - 1].name = $"{currlayername}More{namecount}";
+                        nextMenu.name = $"{currlayername}More{namecount}";
 
-                        if (!Helper.DoesMenuExist(ExtraMenus[index - 1].name, true))
+                        if (!Helper.DoesMenuExist(nextMenu.name, true))
                         {
-                            AssetDatabase.CreateAsset(ExtraMenus[index - 1], $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                            AssetDatabase.CreateAsset(nextMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{nextMenu.name}.asset");
                             if (EZAvatar.enableUnityDebugLogs)
-                                Debug.Log($"<color=green>[EZAvatar]</color>: Created a new menu page for {currentMenu.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset");
+                                Debug.Log($"<color=green>[EZAvatar]</color>: Created a new menu page for {currentMenu.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{nextMenu.name}.asset");
                             menusCompleted++;
                         }
-
-                        else
-                            ExtraMenus[index - 1] = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{ExtraMenus[index - 1].name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
-
+                    
                         currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
                             name = "More",
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
-                            subMenu = ExtraMenus[index - 1]
+                            subMenu = nextMenu
                         });
+
                         //Export our current menu
                         if (!Helper.DoesMenuExist(currentMenu.name, true))
                         {
@@ -709,7 +678,7 @@ namespace EZAva2
 
                         AssetDatabase.SaveAssets();
 
-                        currentMenu = ExtraMenus[index - 1];
+                        currentMenu = nextMenu;
                     }
                 }
                 //When we have reached the end

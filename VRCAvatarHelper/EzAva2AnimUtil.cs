@@ -61,7 +61,7 @@ namespace EZAva2
             so.ApplyModifiedProperties();
         }
 
-        public static void TurnOnParameterBool(AnimatorController controller, string parameterName)
+        public static void TurnOnParameterBool(ref AnimatorController controller, string parameterName)
         {
             SerializedObject animator = new SerializedObject(controller);
             var parameters = animator.FindProperty("m_AnimatorParameters");
@@ -147,7 +147,7 @@ namespace EZAva2
                 {
                     AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
                     if (EZAvatar.enableUnityDebugLogs)
-                        Debug.Log($"<color=green>[EZAvatar]</color>: Created {clip.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
+                        Debug.Log($"<color=green>[EZAvatar]</color>: Created {clip.name}.anim at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
                     Algorithm.animsCreated++;
                 }
                 else
@@ -332,7 +332,6 @@ namespace EZAva2
                             idleOffCurve.AddKey(1 / idleClip.frameRate, 0);
                             idleClip.SetCurve(path, typeof(GameObject), "m_IsActive", idleOffCurve);
                             
-                            objCategories[i].animClips.Add(idleClip);
                             ExportClip(idleClip, objCategories[i].name);
                         }
 
@@ -389,8 +388,6 @@ namespace EZAva2
                     }                 
                 }            
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         public static AnimationClip LoadAnimClip(string clipname, string meshName)

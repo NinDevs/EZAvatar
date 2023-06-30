@@ -76,7 +76,7 @@ namespace EZAva2
         {
             EZAvatar.debug = SetTextColor($"Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. " +
                 $"Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus at <a href='Assets/Nin/EZAvatar/{EZAvatar.avatar.name}'>Assets/Nin/EZAvatar/{EZAvatar.avatar.name}</a>. :)", "#1bfa53");
-            Debug.Log($"<color=green>[EZAvatar]</color>: Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)");
+            Debug.Log($"<color=cyan>[EZAvatar]</color>: Finished without errors in {string.Format("{0:0.000}", Algorithm.elaspedTime)}s. Created {Algorithm.animsCreated} new anims, {Algorithm.layersCompleted} new layers, {Algorithm.statesCompleted} new states, and {Algorithm.menusCompleted} new menus. :)");
             Algorithm.layersCompleted = 0;
             Algorithm.statesCompleted = 0;
             Algorithm.menusCompleted = 0;
@@ -166,7 +166,7 @@ namespace EZAva2
         {
             SerializedObject parameters_S = new SerializedObject(vrcExpressionParameters);
             var parameters = parameters_S.FindProperty("parameters");
-            for(int i = 0; i < parameters.arraySize; i++)
+            for (int i = 0; i < parameters.arraySize; i++)
             {
                 if (parameters.GetArrayElementAtIndex(i).name == parameterName)
                     parameters.DeleteArrayElementAtIndex(i); 

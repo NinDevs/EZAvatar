@@ -79,7 +79,7 @@ namespace EZAva2
         public static bool autoSelectFolderWhenRun = true;
         public static bool enableUnityDebugLogs = true;
         
-        public static string Version = "v1.1.2";
+        public static string Version = "v1.1.3";
 
         public enum CreationType
         {
@@ -147,10 +147,15 @@ namespace EZAva2
                     if (autoCreateMenus)
                         Algorithm.CreateMenus(ref matCategories, ref objCategories);
 
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+                    
+                    watch.Stop();
                     Algorithm.elaspedTime = watch.Elapsed.TotalSeconds;
-                    Helper.DisplayCreationResults();                  
+                    Helper.DisplayCreationResults();                       
                     ReInitializeUI();
                     EditorSceneManager.SaveOpenScenes();
+                    
                     if (autoSelectFolderWhenRun)
                         Helper.SelectAssetAtPath<UnityEngine.Object>($"Assets/Nin/EZAvatar/{avatar.name}");                   
                 }
@@ -189,7 +194,7 @@ namespace EZAva2
 
         void DrawMaterialUI()
         {           
-            EditorGUILayout.BeginHorizontal("box");
+            EditorGUILayout.BeginHorizontal();
             
             matEnterText = EditorGUILayout.TextField(matEnterText);
 
@@ -240,8 +245,7 @@ namespace EZAva2
 
                 //Logic for what will be under each category foldout, in this case it will be material object fields.
                 if (matCategories[i].foldout)
-                {
-                    
+                {                 
                     if (Helper.DoesCategoryExistAndHaveStates(controller, matCategories[i].name) && !matCategories[i].layerExists)
                         matCategories[i].layerExists = true;
                     
@@ -294,7 +298,7 @@ namespace EZAva2
 
         void DrawGameObjUI()
         {
-            EditorGUILayout.BeginHorizontal("box");
+            EditorGUILayout.BeginHorizontal();
             
             objEnterText = EditorGUILayout.TextField(objEnterText);
 
@@ -407,6 +411,5 @@ namespace EZAva2
             objCategories.Clear();           
         }   
     }
-
 
 #endif
