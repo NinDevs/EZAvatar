@@ -278,6 +278,7 @@ namespace EZAva2
 
                 //Allows automatic conversion from on off to any state int toggles if we add to an existing layer that had previously two states and toggled via bool
                 bool wasOnOffLayer = (objCategories[i].layerExists == true && (ControllerUtil.GetParameterByName(EZAvatar.controller, $"Toggle {objCategories[i].name}")?.type == AnimatorControllerParameterType.Bool)) == true ? true : false;
+                var onOffPath = "";
 
                 //If we are using any state transitions for objects toggles instead of on/off
                 if (objCategories[i].makeIdle)
@@ -286,15 +287,37 @@ namespace EZAva2
                     if (idleClip != null)
                         EditorUtility.SetDirty(idleClip);
                     if (wasOnOffLayer)
-                    {
-                        var onStateClip = ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {objCategories[i].name}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList()[0].state.motion as AnimationClip;
+                    {                       
+                        var previousOnStateClip = ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {objCategories[i].name}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList()[0].state.motion as AnimationClip;
 #pragma warning disable CS0618 // Type or member is obsolete
-                        var onStateCurve = AnimationUtility.GetAllCurves(onStateClip)[0];
+                        var onStateCurve = AnimationUtility.GetAllCurves(previousOnStateClip)[0];
 #pragma warning restore CS0618 // Type or member is obsolete
+                        onOffPath = onStateCurve.path;
 
+                        var newOnStateClip = new AnimationClip();
+                        newOnStateClip.name = previousOnStateClip.name;
+                        newOnStateClip.SetCurve(onStateCurve.path, typeof(GameObject), "m_IsActive", onStateCurve.curve);
+
+                        for (int b = 0; b < gameObj.Count(); b++)
+                        {
+                            foreach (var obj in gameObj)
+                            {
+                                if (obj != gameObj[b])
+                                {
+                                    var newOffCurve = new AnimationCurve();
+                                    var newPath = obj.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+                                    newOffCurve.AddKey(0, 0);
+                                    newOffCurve.AddKey(1 / previousOnStateClip.frameRate, 0);
+                                    newOnStateClip.SetCurve(newPath, typeof(GameObject), "m_IsActive", newOffCurve);
+                                }
+                            }
+                        }
+
+                        ExportClip(newOnStateClip, "Switched");
+                        
                         var newCurve = new AnimationCurve();
                         newCurve.AddKey(0, 0);
-                        newCurve.AddKey(1 / onStateClip.frameRate, 0);
+                        newCurve.AddKey(1 / previousOnStateClip.frameRate, 0);
 
                         idleClip = new AnimationClip();
                         idleClip.name = $"{objCategories[i].name}Idle";
@@ -304,14 +327,35 @@ namespace EZAva2
                     for (int y = 0; y < gameObj.Count(); y++)
                     {
                         var onClip = new AnimationClip();
-                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
 
                         //Creates curves/keys for gameobject active, per object
                         var onCurve = new AnimationCurve();
+                        var path = gameObj[y].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);                    
                         onCurve.AddKey(0, 1);
                         onCurve.AddKey(1 / onClip.frameRate, 1);
                         onClip.SetCurve(path, typeof(GameObject), "m_IsActive", onCurve);
 
+                        //For each object that is not the current obj, set them to off
+                        foreach (var obj in gameObj)
+                        {
+                            if (obj != gameObj[y])
+                            {
+                                var newOffCurve = new AnimationCurve();
+                                var newPath = obj.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+                                newOffCurve.AddKey(0, 0);
+                                newOffCurve.AddKey(1 / onClip.frameRate, 0);
+                                onClip.SetCurve(newPath, typeof(GameObject), "m_IsActive", newOffCurve);
+                            }
+                        }
+
+                        if (wasOnOffLayer)
+                        {
+                            var previousStateCurve = new AnimationCurve();
+                            previousStateCurve.AddKey(0, 0);
+                            previousStateCurve.AddKey(1 / onClip.frameRate, 0);
+                            onClip.SetCurve(onOffPath, typeof(GameObject), "m_IsActive", previousStateCurve);
+                        }
+                                       
                         onClip.name = $"{gameObj[y].name}ON";
                         objCategories[i].animClips.Add(onClip);
                         ExportClip(onClip, objCategories[i].name);

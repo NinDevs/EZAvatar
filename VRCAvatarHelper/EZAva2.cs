@@ -79,7 +79,7 @@ namespace EZAva2
         public static bool autoSelectFolderWhenRun = true;
         public static bool enableUnityDebugLogs = true;
         
-        public static string Version = "v1.1.3";
+        public static string Version = "v1.1.4";
 
         public enum CreationType
         {

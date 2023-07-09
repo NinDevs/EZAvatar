@@ -284,12 +284,9 @@ namespace EZAva2
 
                         if (layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                         {                          
-                            layer.stateMachine.RemoveState(layer.stateMachine.states[1].state);
-
                             var previousStateName = layer.stateMachine.states[0].state.name;
                             var previousStateClip = layer.stateMachine.states[0].state.motion.name;
-
-                            layer.stateMachine.RemoveState(layer.stateMachine.states[0].state);
+                            ControllerUtil.RemoveStates(layer);
 
                             states[y] = layer.stateMachine.AddState("Toggles Idle", new Vector3(31, -45));                           
                             objCategories[i].states.Add(states[y]);
@@ -298,9 +295,7 @@ namespace EZAva2
                             //Readd the state with the previous clip. This is just so that the default state is always the idle state, we delete the previous state and readd after idle state creation
                             layer.stateMachine.AddState(previousStateName, new Vector3(360, 55));
                             objCategories[i].states.Add(layer.stateMachine.states.Where(x => x.state.name == previousStateName).ToList()[0].state);
-                            layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(previousStateClip, previousStateClip.Substring(0, previousStateClip.LastIndexOf('O'))) != null ?
-                                AnimUtil.LoadAnimClip(previousStateClip, previousStateClip.Substring(0, previousStateClip.LastIndexOf('O'))) :
-                                AnimUtil.LoadAnimClip(previousStateClip, "Multi-Toggles");
+                            layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(previousStateClip, "Switched");
 
                             ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);
                             objCategories[i].switched = true;
