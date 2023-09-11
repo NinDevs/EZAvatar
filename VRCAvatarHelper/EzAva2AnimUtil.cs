@@ -6,6 +6,8 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using System.Runtime.InteropServices;
+using System;
 
 namespace EZAva2
 {
@@ -94,7 +96,7 @@ namespace EZAva2
             }         
         }
         
-#if VRC_SDK_VRCSDK3
+        #if VRC_SDK_VRCSDK3
         public static void ChangeParameterToInt(AnimatorController controller, AnimatorControllerLayer layer, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters expressionParametersMenu, string parametername)
         {
             var statemachine = layer.stateMachine;
@@ -128,7 +130,7 @@ namespace EZAva2
 
             }
         }
-#endif
+        #endif
     }
 
     public class AnimUtil
@@ -145,7 +147,7 @@ namespace EZAva2
             {
                 if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim"))
                 {
-                    AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clip.name}.anim");
+                    AssetDatabase.CreateAsset(clip, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName.Trim()}/{clip.name.Trim()}.anim");
                     if (EZAvatar.enableUnityDebugLogs)
                         Debug.Log($"<color=green>[EZAvatar]</color>: Created {clip.name}.anim at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}!");
                     Algorithm.animsCreated++;
@@ -202,17 +204,26 @@ namespace EZAva2
             else return null;
         }
 
-        public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories)
+        public static Type FetchRenderer(GameObject obj)
+        {
+            if (obj?.GetComponent<SkinnedMeshRenderer>() != null)
+            {
+                return typeof(SkinnedMeshRenderer);
+            }
+            else if (obj?.GetComponent<MeshRenderer>() != null) 
+            {
+                return typeof(MeshRenderer);
+            } 
+            else return null;
+        }
+
+        public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories, ref List<Category> blendCategories)
         {
             for (int i = 0; i < matCategories.Count(); i++)
             {
-
                 var materials = matCategories[i].materials;
                 var gameObj = matCategories[i].objects.FirstOrDefault();
                
-                matCategories[i].name.Trim();
-                gameObj.name.Trim();
-
                 if (materials.Count() < 2)
                 {
                     EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of two materials! Base material and the swap material(s). Skipping over {matCategories[i].name}...", "yellow");
@@ -243,9 +254,8 @@ namespace EZAva2
 
                     for (int x = 0; x < materials.Count(); x++)
                     {
-                        //We create a new animationclip for each material, with the name the same as the material name.
                         var clip = new AnimationClip();
-                        clip.name = materials[x].name;
+                        clip.name = materials[x].name.Trim();
                         ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[2];
                         keyframe[0].value = materials[x];
                         keyframe[0].time = 0;
@@ -254,21 +264,15 @@ namespace EZAva2
                         AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
 
                         matCategories[i].animClips.Add(clip);
-                        ExportClip(clip, matCategories[i].objects[0].name);
+                        ExportClip(clip, matCategories[i].objects[0].name.Trim());
                     }
                 }
             }
                 
             for (int i = 0; i < objCategories.Count(); i++)
             {
-
                 var gameObj = objCategories[i].objects;
                
-                foreach (var obj in gameObj)
-                    obj.name.Trim();
-             
-                objCategories[i].name.Trim();
-
                 if (objCategories[i].objects[0] == null)
                 {
                     EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of one gameobject. Skipping over {objCategories[i].name}...", "yellow");
@@ -287,22 +291,22 @@ namespace EZAva2
                     if (idleClip != null)
                         EditorUtility.SetDirty(idleClip);
                     if (wasOnOffLayer)
-                    {                       
+                    {
+                        #pragma warning disable 618 //GetAllCurves() is deprecated. This disables the obsolete warning message.
+
                         var previousOnStateClip = ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {objCategories[i].name}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList()[0].state.motion as AnimationClip;
-#pragma warning disable CS0618 // Type or member is obsolete
                         var onStateCurve = AnimationUtility.GetAllCurves(previousOnStateClip)[0];
-#pragma warning restore CS0618 // Type or member is obsolete
                         onOffPath = onStateCurve.path;
 
                         var newOnStateClip = new AnimationClip();
                         newOnStateClip.name = previousOnStateClip.name;
                         newOnStateClip.SetCurve(onStateCurve.path, typeof(GameObject), "m_IsActive", onStateCurve.curve);
 
-                        for (int b = 0; b < gameObj.Count(); b++)
+                        for (int o = 0; o < gameObj.Count(); o++)
                         {
                             foreach (var obj in gameObj)
                             {
-                                if (obj != gameObj[b])
+                                if (obj != gameObj[o])
                                 {
                                     var newOffCurve = new AnimationCurve();
                                     var newPath = obj.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
@@ -355,8 +359,17 @@ namespace EZAva2
                             previousStateCurve.AddKey(1 / onClip.frameRate, 0);
                             onClip.SetCurve(onOffPath, typeof(GameObject), "m_IsActive", previousStateCurve);
                         }
+
+                        if (objCategories[i].layerExists)
+                        {
+                            var previousObjectCurves = AnimationUtility.GetAllCurves(idleClip);
+                            foreach (var curve in previousObjectCurves)
+                            {
+                                onClip.SetCurve(curve.path, typeof(GameObject), "m_IsActive", curve.curve);
+                            }                        
+                        }
                                        
-                        onClip.name = $"{gameObj[y].name}ON";
+                        onClip.name = $"{gameObj[y].name.Trim()}ON";
                         objCategories[i].animClips.Add(onClip);
                         ExportClip(onClip, objCategories[i].name);
 
@@ -366,6 +379,8 @@ namespace EZAva2
                             idleOffCurve.AddKey(0, 0);
                             idleOffCurve.AddKey(1 / idleClip.frameRate, 0);
                             idleClip.SetCurve(path, typeof(GameObject), "m_IsActive", idleOffCurve);
+                            if (y == gameObj.Count() - 1 && objCategories[i].layerExists)
+                                AddIdleCurvesToPreviousClips(objCategories[i].name, idleClip);
                         }
                         else
                         {
@@ -379,10 +394,7 @@ namespace EZAva2
                             ExportClip(idleClip, objCategories[i].name);
                         }
 
-                    }
-                    
-                    if (!File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{objCategories[i].name}/{objCategories[i].name}Idle.anim"))
-                        ExportClip(idleClip, objCategories[i].name);
+                    }                 
                 }
                 else
                 {
@@ -412,13 +424,13 @@ namespace EZAva2
                     //Creates the clip
                     if (gameObj.Count() == 1)
                     {
-                        onClip.name = $"{gameObj[0].name}ON";
+                        onClip.name = $"{gameObj[0].name.Trim()}ON";
                         objCategories[i].animClips.Add(onClip);
-                        ExportClip(onClip, gameObj[0].name);
+                        ExportClip(onClip, gameObj[0].name.Trim());
 
-                        offClip.name = $"{gameObj[0].name}OFF";
+                        offClip.name = $"{gameObj[0].name.Trim()}OFF";
                         objCategories[i].animClips.Add(offClip);
-                        ExportClip(offClip, gameObj[0].name);
+                        ExportClip(offClip, gameObj[0].name.Trim());
                     }
 
                     else
@@ -432,11 +444,68 @@ namespace EZAva2
                     }                 
                 }            
             }
+
+            for (int i = 0; i < blendCategories.Count; i++)
+            {
+                foreach (var bvp in blendCategories[i].blendShapeData.values)
+                {
+                    bvp.min = blendCategories[i].blendShapeData.GUIData[bvp.guidataid].selectedMin[bvp.id];
+                    bvp.max = blendCategories[i].blendShapeData.GUIData[bvp.guidataid].selectedMax[bvp.id];
+                }
+
+                var onClip = new AnimationClip();
+                var offClip = new AnimationClip();
+                onClip.name = $"{blendCategories[i].name}ON";
+                offClip.name = $"{blendCategories[i].name}OFF";
+
+                if (blendCategories[i].menuControl == ControlType.RadialPuppet) {onClip.wrapMode = WrapMode.Loop; offClip.wrapMode = WrapMode.Loop;}
+
+                for (int y = 0; y < blendCategories[i].blendShapeData.values.Count; y++)
+                {
+                    var currValuePair = blendCategories[i].blendShapeData.values[y];
+                    var path = blendCategories[i].objects[currValuePair.guidataid].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+                    var onCurve = new AnimationCurve();
+                    var offCurve = new AnimationCurve();
+
+                    onCurve.AddKey(0, currValuePair.max);
+                    onCurve.AddKey(1 / onClip.frameRate, currValuePair.max);
+                    onClip.SetCurve(path, typeof(SkinnedMeshRenderer), $"blendShape.{currValuePair.name}", onCurve);
+
+                    offCurve.AddKey(0, currValuePair.min);
+                    offCurve.AddKey(1 / onClip.frameRate, currValuePair.min);
+                    offClip.SetCurve(path, typeof(SkinnedMeshRenderer), $"blendShape.{currValuePair.name}", offCurve);
+                }
+                
+                blendCategories[i].animClips.Add(onClip);
+                ExportClip(onClip, $"Blendshapes/{blendCategories[i].name}");
+
+                blendCategories[i].animClips.Add(offClip);
+                ExportClip(offClip, $"Blendshapes/{blendCategories[i].name}");
+            }
         }
 
         public static AnimationClip LoadAnimClip(string clipname, string meshName)
         {
-           return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName}/{clipname}.anim", typeof(AnimationClip));
+           return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName.Trim()}/{clipname}.anim", typeof(AnimationClip));
+        }
+
+        public static void AddIdleCurvesToPreviousClips(string categoryname, AnimationClip idleClip)
+        {
+            foreach (var previousState in ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {categoryname}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList())
+            {
+                var clipname = previousState.state.motion.name;
+                var clip = LoadAnimClip(clipname, categoryname) != null ? LoadAnimClip(clipname, categoryname) : LoadAnimClip(clipname, "Switched");
+                EditorUtility.SetDirty(clip);
+                var curves = AnimationUtility.GetAllCurves(clip);
+                foreach (var curve in curves)
+                {                   
+                    foreach(var idleCurve in AnimationUtility.GetAllCurves(idleClip))
+                    {
+                        if (curves.Any(x => x.path == idleCurve.path) == false)
+                            clip.SetCurve(idleCurve.path, idleCurve.type, idleCurve.propertyName, idleCurve.curve);
+                    }
+                }
+            }
         }
     }
 }

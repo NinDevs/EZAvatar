@@ -7,19 +7,19 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace EZAva2
 {
     public class Helper
     {
-        //Creates a new entry in our list which stores the category name, the reference to the foldout bool, and the list of materials.
-        public static void AddCategory(List<Category> dict, string categoryName)
+        public static void AddCategory(List<Category> list, string categoryName)
         {
             Category category = new Category();
-            category.name = categoryName;
+            category.name = categoryName.Trim();
             category.foldout = true;
             category.slots = 0;
-            dict.Add(category);
+            list.Add(category);
         }
 
         public static bool DoesCategoryExist(List<Category> categories, string categoryName)
@@ -49,6 +49,28 @@ namespace EZAva2
                 }
             }
             return false;
+        }
+
+        public static void CreateCategoryButton(ref List<Category> categoryList, ref string categoryNameText)
+        {
+            var categoryExists = DoesCategoryExist(categoryList, categoryNameText);
+
+            if (!categoryExists && !string.IsNullOrWhiteSpace(categoryNameText))
+            {
+                AddCategory(categoryList, categoryNameText);
+            }
+            else if (categoryExists)
+            {
+                Debug.Log("<color=yellow>[EZAvatar]</color>: Category already exists! Try a different name.");
+                EZAvatar.debug = SetTextColor("Category already exists! Try a different name.", "yellow");
+            }
+            else
+            {
+                Debug.Log("<color=yellow>[EZAvatar]</color>: Cannot create a category with an empty name.");
+                EZAvatar.debug = SetTextColor("Cannot create a category with an empty name.", "yellow");
+            }
+
+            categoryNameText = "";
         }
      
         public string MaterialToGUID(Material mat)
@@ -145,6 +167,19 @@ namespace EZAva2
             Selection.activeObject = folder;
             EditorGUIUtility.PingObject(folder);
         }
+
+        public static int FetchTotalBlendshapes(Category category) 
+        {
+            int blendSCount = 0;
+            
+            foreach(var obj in category.objects)
+            {
+                if (obj == null || obj.GetComponent<SkinnedMeshRenderer>() == null) continue;
+                blendSCount += obj.GetComponent<SkinnedMeshRenderer>().sharedMesh.blendShapeCount;
+            }
+            
+            return blendSCount;
+        }
     }
   
     public class VRCUtil
@@ -173,7 +208,42 @@ namespace EZAva2
             }
             parameters_S.ApplyModifiedProperties();
         }
+
+        public static void CreateParametersMenu(ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters vrcExpressionParameters)
+        {
+            var newParametersMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters>();
+                newParametersMenu.name = $"{EZAvatar.avatar.name}Parameters";
+                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
+                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
+                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;              
+                vrcExpressionParameters = newParametersMenu;
+                EditorUtility.SetDirty(vrcExpressionParameters);
+                if (EZAvatar.enableUnityDebugLogs)
+                    Debug.Log($"<color=green>[EZAvatar]</color>: Missing parameters menu, created parameters menu  at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}'");
+        }
     }
+
+    public class BlendshapeGUIData
+    {
+        public bool[] selected = new bool[1];
+        public int[] selectedMin = new int[1];
+        public int[] selectedMax = new int[1];
+    }
+    public class BlendshapeValuePair
+    {
+        public string name = null;
+        public int id = 0;
+        public int guidataid = 0;
+        public int min = 0;
+        public int max = 0;
+    }
+
+    public class BlendshapeValueData
+    {
+        public List<BlendshapeValuePair> values = new List<BlendshapeValuePair>();
+        public List<BlendshapeGUIData> GUIData = new List<BlendshapeGUIData>();
+    } 
 }
 
 #endif
