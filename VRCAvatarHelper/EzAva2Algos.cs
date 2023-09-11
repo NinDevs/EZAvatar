@@ -401,6 +401,7 @@ namespace EZAva2
 
                     layer.stateMachine.AddState(layername);
                     layer.stateMachine.states.Last().state.motion = blendtree;
+                    AssetDatabase.AddObjectToAsset(blendtree, layer.stateMachine.states.Last().state);
                     statesCompleted++;
                 }
             }       
