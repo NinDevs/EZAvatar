@@ -387,10 +387,7 @@ namespace EZAva2
                 else if (blendshapeCategory[i].menuControl == ControlType.RadialPuppet)
                 {
                     if (ControllerUtil.GetParameterByName(controller, parametername) == null) 
-                    {
                         controller.AddParameter(parametername, AnimatorControllerParameterType.Float);
-                        ControllerUtil.TurnOnParameterBool(ref controller, parametername);
-                    }
 
                     if (expressionParametersMenu.FindParameter(parametername) == null)
                         VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Float, 0, parametername);
@@ -431,7 +428,7 @@ namespace EZAva2
                 AssetDatabase.Refresh();
             }
                               
-            //If an accessories/colors menu already exists for this avatar, we load that menu and add to it.
+            //If an toggles/colors/customization menu already exists for this avatar, we load that menu and add to it.
             //Otherwise we create new menus.
             if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Toggles.asset") && oCategoryCount > 0)
             {
@@ -779,4 +776,4 @@ namespace EZAva2
 }
 
 #endif
-#endif 
+#endif

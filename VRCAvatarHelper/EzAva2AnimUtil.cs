@@ -6,7 +6,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
-using System.Runtime.InteropServices;
 using System;
 
 namespace EZAva2
@@ -458,7 +457,7 @@ namespace EZAva2
                 onClip.name = $"{blendCategories[i].name}ON";
                 offClip.name = $"{blendCategories[i].name}OFF";
 
-                if (blendCategories[i].menuControl == ControlType.RadialPuppet) {onClip.wrapMode = WrapMode.Loop; offClip.wrapMode = WrapMode.Loop;}
+                if (blendCategories[i].menuControl == ControlType.RadialPuppet) {onClip.enableLoopTime(); offClip.enableLoopTime();}
 
                 for (int y = 0; y < blendCategories[i].blendShapeData.values.Count; y++)
                 {
@@ -488,7 +487,7 @@ namespace EZAva2
         {
            return (AnimationClip)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{meshName.Trim()}/{clipname}.anim", typeof(AnimationClip));
         }
-
+    
         public static void AddIdleCurvesToPreviousClips(string categoryname, AnimationClip idleClip)
         {
             foreach (var previousState in ControllerUtil.GetLayerByName(ref EZAvatar.controller, $"Toggle {categoryname}").stateMachine.states.Where(x => x.state.name.Contains("ON")).ToList())
@@ -506,6 +505,17 @@ namespace EZAva2
                     }
                 }
             }
+        }
+    }
+
+    public static class AnimExtensions
+    {
+        public static AnimationClip enableLoopTime(this AnimationClip clip)
+        {
+            SerializedObject anim = new SerializedObject(clip);
+            anim.FindProperty("m_AnimationClipSettings").FindPropertyRelative("m_LoopTime").boolValue = true;
+            anim.ApplyModifiedProperties();
+            return clip;
         }
     }
 }
