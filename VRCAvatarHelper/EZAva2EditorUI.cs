@@ -20,6 +20,7 @@ public class UI
 
         if (GUILayout.Button("Create category")) {
             Helper.CreateCategoryButton(ref matCategories, ref matCategoryFieldText);
+            matCategories.Last().slots = 2;
         }
 
         EditorGUILayout.EndHorizontal();
@@ -49,8 +50,11 @@ public class UI
             //Logic for what will be under each category foldout, in this case it will be material object fields.
             if (matCategories[i].foldout)
             {                 
-                if (Helper.DoesCategoryExistAndHaveStates(controller, matCategories[i].name) && !matCategories[i].layerExists)
+                if (!matCategories[i].layerExists && Helper.DoesCategoryExistAndHaveStates(controller, matCategories[i].name)) 
+                {
                     matCategories[i].layerExists = true;
+                    matCategories[i].slots = 1;
+                }
                     
                 if (matCategories[i].layerExists)
                 {
@@ -79,13 +83,13 @@ public class UI
 
                 EditorGUILayout.Space(2);
 
-                matCategories[i].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].objects[0], typeof(GameObject), true);
+                if (!matCategories[i].layerExists) {matCategories[i].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].objects[0], typeof(GameObject), true);}
 
                 //Creates new object fields based on the value of matCount, which increments with the Add button seen below.
                 for (int y = 0; y < matCategories[i].slots; y++)
                 {
                     Array.Resize(ref matCategories[i].materials, matCategories[i].slots);
-                    if (y == 0)
+                    if (y == 0 && !matCategories[i].layerExists)
                         matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField("Default", matCategories[i].materials[y], typeof(Material), false);
                     else
                         matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField($"Mat {y}", matCategories[i].materials[y], typeof(Material), false);
@@ -124,6 +128,7 @@ public class UI
 
         if (GUILayout.Button("Create category")) {
             Helper.CreateCategoryButton(ref objCategories, ref objCategoryFieldText);
+            objCategories.Last().slots = 1;
         }
 
         EditorGUILayout.EndHorizontal();
@@ -154,10 +159,11 @@ public class UI
             //Logic for what will be under each category foldout, in this case it will be material object fields.
             if (objCategories[i].foldout)
             {
-                if (Helper.DoesCategoryExistAndHaveStates(controller, $"Toggle {objCategories[i].name}") && !objCategories[i].layerExists)
+                if (Helper.DoesCategoryExistAndHaveStates(controller, ref objCategories[i].name) && !objCategories[i].layerExists)
                 {
                     objCategories[i].layerExists = true;
                     objCategories[i].makeIdle = true;
+                    objCategories[i].slots = 1;
                 }
 
                 if (objCategories[i].layerExists) {

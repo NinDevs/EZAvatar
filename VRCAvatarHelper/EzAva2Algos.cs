@@ -93,16 +93,14 @@ namespace EZAva2
                     }
 
                     //Detect that a layer already has 2 states and change the bool on/off transitions to any state transitions
-                    else if (clipcount == 2 && matCategories[i].layerExists && ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() == 2)
-                    {
-                        layer = ControllerUtil.GetLayerByName(ref controller, layername);
-                        matCategories[i].layer = layer;
-                        ControllerUtil.SetLayerWeight(controller, layer, 1);
-                    
+                    else if (matCategories[i].layerExists && layer.stateMachine.states.Count() == 2)
+                    {                   
                         if (statemachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
                         {
                             ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);                               
                             matCategories[i].switched = true;
+                            foreach(var state in layer.stateMachine.states)
+                                matCategories[i].states.Add(state.state);
                         }
 
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
@@ -581,11 +579,15 @@ namespace EZAva2
                     isLoaded = true;
                     //If we switched from bool parameter with 2 toggles to int, we will redo the menu as to include the prior states as toggles
                     if (category[i].switched == true && currentMenu.controls.Count() == 1)
+                    {
                         currentMenu.controls.Clear();
+                    }
                 }
 
                 if (category[i].menuGenerationType == MenuGenOption.AddToSelectedMenu) { EditorUtility.SetDirty(currentMain); }
+                
                 EditorUtility.SetDirty(currentMenu);
+                EditorUtility.SetDirty(currentMain);
 
                 creationstart:
 
@@ -593,6 +595,7 @@ namespace EZAva2
                 if (currentMain.controls.Count() == 8 && i + 1 <= categoryCount)
                 {
                     var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
+                    EditorUtility.SetDirty(nextmain);
                     var namecount = 0;
 
                     var currentMainName = currentMain.name.Contains("More") == true ? currentMain.name.Substring(0, currentMain.name.LastIndexOf('M')) : currentMain.name;
@@ -608,7 +611,7 @@ namespace EZAva2
                     if (EZAvatar.enableUnityDebugLogs)
                         Debug.Log($"<color=green>[EZAvatar]</color>: Created a new menu page for {currentMain.name} at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{nextmain.name}.asset");
                     menusCompleted++;
-
+                    
                     currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
                         name = "More",
@@ -648,7 +651,7 @@ namespace EZAva2
 
                 if (category[i].menuControl == ControlType.RadialPuppet)
                 {
-                    if (currentMain.controls.Contains(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control() {name = toggleControlName, type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet, parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName }, value = 0 }) == false)
+                    if (currentMain.controls.Where(x => x.name == toggleControlName && x.parameter.name == parameterName && x.type == VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet) == null)
                     {
                         currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
@@ -663,8 +666,37 @@ namespace EZAva2
                 }
 
                 //If the toggle is a bool instead of int, we don't need to iterate through each state, we just need to make one control toggle
-                else if (ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
-                {
+                else if (type == EZAvatar.CreationType.Material && ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
+                {                  
+                    currentMenu.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = category[i].states.First().name,
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.Toggle,
+                        parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName },
+                        value = 1
+                    });
+
+                    if (!AssetDatabase.Contains(currentMenu))
+                    {
+                        AssetDatabase.CreateAsset(currentMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMenu.name}.asset");
+                        if (EZAvatar.enableUnityDebugLogs)
+                            Debug.Log($"<color=green>[EZAvatar]</color>: Created {currentMenu.name} menu at Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset");
+                        menusCompleted++;
+                    }
+                    
+                    currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
+                    {
+                        name = currentMenu.name,
+                        type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.SubMenu,
+                        subMenu = currentMenu
+                    });
+              
+                    //Skip to next category
+                    continue;
+                }
+
+                else if (type == EZAvatar.CreationType.GameObject || type == EZAvatar.CreationType.Blendshape && ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
+                {                  
                     currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
                         name = toggleControlName,
@@ -677,7 +709,7 @@ namespace EZAva2
                     continue;
                 }
                 
-                for (int y = 0; y < newStates.Count(); y++)
+                for (int y = 0; y < newStatesCount; y++)
                 {
                     if (type == EZAvatar.CreationType.GameObject && newStates[y].name.Equals("Toggles Idle"))
                         continue;
@@ -771,7 +803,6 @@ namespace EZAva2
                     }
                 }
             }
-            AssetDatabase.SaveAssets();
         }
     }
 }

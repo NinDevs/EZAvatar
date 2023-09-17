@@ -173,7 +173,7 @@ namespace EZAva2
                     EditorSceneManager.SaveOpenScenes();
                     
                     if (autoSelectFolderWhenRun)
-                        Helper.SelectAssetAtPath<UnityEngine.Object>($"Assets/Nin/EZAvatar/{avatar.name}");                   
+                        Helper.SelectAssetAtPath<Object>($"Assets/Nin/EZAvatar/{avatar.name}");                   
                 }
                 else if (objCategories.Count + matCategories.Count + blendCategories.Count == 0)
                 {

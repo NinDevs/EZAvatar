@@ -51,6 +51,27 @@ namespace EZAva2
             return false;
         }
 
+        public static bool DoesCategoryExistAndHaveStates(AnimatorController controller, ref string categoryName)
+        {
+            bool result = false;
+            var layers = controller?.layers;
+            var hasToggleInName = categoryName.StartsWith("Toggle");
+            for (int i = 0; i < layers?.Length; i++)
+            {
+                if (!hasToggleInName && layers[i]?.name == $"Toggle {categoryName}" || layers[i]?.name == categoryName && hasToggleInName)
+                {
+                    if (layers[i]?.stateMachine.states.Length >= 2)
+                    {                      
+                        result = true;
+                    }
+                }
+            }
+            /*If user inputs either the category name without "Toggle" in front or with, it will be recognized as an existing category regardless if it exists. (for gameobj categories)
+            This function will trim off the "Toggle" at the beginning.*/
+            if (hasToggleInName && result == true) {categoryName = categoryName.Substring(7);}
+            return result;
+        }
+
         public static void CreateCategoryButton(ref List<Category> categoryList, ref string categoryNameText)
         {
             var categoryExists = DoesCategoryExist(categoryList, categoryNameText);

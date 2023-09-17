@@ -6,7 +6,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
-using System;
 
 namespace EZAva2
 {
@@ -66,7 +65,8 @@ namespace EZAva2
         {
             SerializedObject animator = new SerializedObject(controller);
             var parameters = animator.FindProperty("m_AnimatorParameters");
-            for (int i = 0; i < parameters.arraySize; i++)
+            int parametersArraySize = parameters.arraySize;
+            for (int i = 0; i < parametersArraySize; i++)
             {
                 if (parameters.GetArrayElementAtIndex(i).FindPropertyRelative("m_Name").stringValue == parameterName)
                     parameters.GetArrayElementAtIndex(i).FindPropertyRelative("m_DefaultBool").boolValue = true;
@@ -76,22 +76,20 @@ namespace EZAva2
 
         public static AnimatorState GetAnimatorStateInLayer(AnimatorControllerLayer layer, string stateName)
         {
-            for (int i = 0; i < layer.stateMachine.states.Length; i++)
+            foreach(var state in layer.stateMachine.states)
             {
-                if (layer.stateMachine.states[i].state.name == stateName)
-                    return layer.stateMachine.states[i].state;
+                if (state.state.name == stateName)
+                    return state.state;
             }
             return null;
         }
 
         public static void RemoveStates(AnimatorControllerLayer layer)
         {
-            var statemachine = layer.stateMachine;
-            var count = statemachine.states.Count();
-            if (count > 0)
+            if (layer.stateMachine.states.Count() > 0)
             {
-                foreach (var state in statemachine.states)
-                    statemachine.RemoveState(state.state);
+                foreach (var state in layer.stateMachine.states)
+                    layer.stateMachine.RemoveState(state.state);
             }         
         }
         
@@ -168,13 +166,15 @@ namespace EZAva2
         {
             var index = 0;
             SerializedObject render = new SerializedObject(renderer);
+            int materialArraySize = render.FindProperty("m_Materials.Array").arraySize;
+            int materialsToSearchCount = materialsToSearch.Count();
 
             /*Iterate through each material in the material array that is on the skinned mesh renderer, in order to find which material name matches the name
             Of any of the materials in the category (mat list), which will allow us to find the proper element index of the material for reference.*/
-            for (int y = 0; y < render.FindProperty("m_Materials.Array").arraySize; y++)
+            for (int y = 0; y < materialArraySize; y++)
             {
                 var material = renderer.sharedMaterials[y];
-                for (int j = 0; j < materialsToSearch.Count(); j++)
+                for (int j = 0; j < materialsToSearchCount; j++)
                 {
                     SerializedObject mat = new SerializedObject(materialsToSearch[j]);
                     if (mat.FindProperty("m_Name").stringValue == material.name)
@@ -203,57 +203,55 @@ namespace EZAva2
             else return null;
         }
 
-        public static Type FetchRenderer(GameObject obj)
-        {
-            if (obj?.GetComponent<SkinnedMeshRenderer>() != null)
-            {
-                return typeof(SkinnedMeshRenderer);
-            }
-            else if (obj?.GetComponent<MeshRenderer>() != null) 
-            {
-                return typeof(MeshRenderer);
-            } 
-            else return null;
-        }
-
         public static void MakeAnimationClips(ref List<Category> matCategories, ref List<Category> objCategories, ref List<Category> blendCategories)
         {
             for (int i = 0; i < matCategories.Count(); i++)
             {
                 var materials = matCategories[i].materials;
-                var gameObj = matCategories[i].objects.FirstOrDefault();
+                int matCount = materials.Count();
                
-                if (materials.Count() < 2)
+                if (matCount < 2 && !matCategories[i].layerExists)
                 {
                     EZAvatar.debug = Helper.SetTextColor($"Must provide a minimum of two materials! Base material and the swap material(s). Skipping over {matCategories[i].name}...", "yellow");
                     Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Must provide a minimum of two materials! Base material and the swap material(s). Skipping over {matCategories[i].name}...");
                     continue;
                 }
-
-                if (materials.Count() >= 2)
+                else if (materials.Any(x => x == null))
                 {
-                    System.Type rendertype = null;
-                    var render = FetchRenderer(gameObj, ref rendertype);                   
-                    if (render == null)
-                    {
-                        EZAvatar.debug = Helper.SetTextColor($"Mesh object was not found in {matCategories[i].name}. Skipping...", "yellow");
-                        Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Mesh object was not found in {matCategories[i].name}. Skipping...");
-                        continue;
-                    }
+                    EZAvatar.debug = Helper.SetTextColor($"Materials can not be empty/null. Skipping over {matCategories[i].name}...", "yellow");
+                    Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Materials can not be empty/null. Skipping over {matCategories[i].name}...");
+                    continue;
+                }
 
-                    var index = FindRendererMaterialIndex(ref render, materials);
-                    
+                if (matCount >= 2 || matCategories[i].layerExists && matCount >= 1)
+                {
                     //Binding allows us to create a curve that is binded to the gameobject and refers to the correct info like renderer slots.
-                    EditorCurveBinding binding = new EditorCurveBinding();
-                    binding.type = rendertype;
-                    //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
-                    var path = rendertype == typeof(SkinnedMeshRenderer) ? ((SkinnedMeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1) : ((MeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
-                    binding.path = path;
-                    binding.propertyName = $"m_Materials.Array.data[{index}]";
+                    EditorCurveBinding binding = !matCategories[i].layerExists ? new EditorCurveBinding() : AnimationUtility.GetObjectReferenceCurveBindings((AnimationClip)ControllerUtil.GetLayerByName(ref EZAvatar.controller, matCategories[i].name).stateMachine.defaultState.motion)[0];
 
-                    for (int x = 0; x < materials.Count(); x++)
+                    if (!matCategories[i].layerExists)
                     {
-                        var clip = new AnimationClip();
+                        System.Type rendertype = null;
+                        var gameObj = matCategories[i].objects[0];
+                        var render = FetchRenderer(gameObj, ref rendertype);                   
+                        if (render == null)
+                        {
+                            EZAvatar.debug = Helper.SetTextColor($"Mesh object was not found in {matCategories[i].name}. Skipping...", "yellow");
+                            Debug.LogWarning($"<color=yellow>[EZAvatar]</color>: Mesh object was not found in {matCategories[i].name}. Skipping...");
+                            continue;
+                        }
+
+                        binding.type = rendertype;
+                        //Removes the avatar name from the front of the hierarchy path, as otherwise the animation references would be incorrect.
+                        var path = rendertype == typeof(SkinnedMeshRenderer) ? ((SkinnedMeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1) : ((MeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
+                        binding.path = path;
+                        binding.propertyName = $"m_Materials.Array.data[{FindRendererMaterialIndex(ref render, materials)}]";
+
+                    }
+                    else {matCategories[i].objects[0] = GameObject.Find(binding.path);}
+
+                    for (int x = 0; x < matCount; x++)
+                    {
+                        var clip = new AnimationClip();                      
                         clip.name = materials[x].name.Trim();
                         ObjectReferenceKeyframe[] keyframe = new ObjectReferenceKeyframe[2];
                         keyframe[0].value = materials[x];
@@ -271,6 +269,7 @@ namespace EZAva2
             for (int i = 0; i < objCategories.Count(); i++)
             {
                 var gameObj = objCategories[i].objects;
+                int objCount = gameObj.Count();
                
                 if (objCategories[i].objects[0] == null)
                 {
@@ -301,7 +300,7 @@ namespace EZAva2
                         newOnStateClip.name = previousOnStateClip.name;
                         newOnStateClip.SetCurve(onStateCurve.path, typeof(GameObject), "m_IsActive", onStateCurve.curve);
 
-                        for (int o = 0; o < gameObj.Count(); o++)
+                        for (int o = 0; o < objCount; o++)
                         {
                             foreach (var obj in gameObj)
                             {
@@ -327,7 +326,7 @@ namespace EZAva2
                         idleClip.SetCurve(onStateCurve.path, typeof(GameObject), "m_IsActive", newCurve);
                     }
 
-                    for (int y = 0; y < gameObj.Count(); y++)
+                    for (int y = 0; y < objCount; y++)
                     {
                         var onClip = new AnimationClip();
 
@@ -378,8 +377,9 @@ namespace EZAva2
                             idleOffCurve.AddKey(0, 0);
                             idleOffCurve.AddKey(1 / idleClip.frameRate, 0);
                             idleClip.SetCurve(path, typeof(GameObject), "m_IsActive", idleOffCurve);
-                            if (y == gameObj.Count() - 1 && objCategories[i].layerExists)
+                            if (y == objCount - 1 && objCategories[i].layerExists)
                                 AddIdleCurvesToPreviousClips(objCategories[i].name, idleClip);
+                            ExportClip(idleClip, objCategories[i].name);
                         }
                         else
                         {
@@ -402,7 +402,7 @@ namespace EZAva2
                     onClip.name = $"{objCategories[i].name}ON";
                     offClip.name = $"{objCategories[i].name}OFF";
 
-                    for (int y = 0; y < gameObj.Count(); y++)
+                    for (int y = 0; y < objCount; y++)
                     {
 
                         var path = gameObj[y].transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);
@@ -421,7 +421,7 @@ namespace EZAva2
 
                     }
                     //Creates the clip
-                    if (gameObj.Count() == 1)
+                    if (objCount == 1)
                     {
                         onClip.name = $"{gameObj[0].name.Trim()}ON";
                         objCategories[i].animClips.Add(onClip);
