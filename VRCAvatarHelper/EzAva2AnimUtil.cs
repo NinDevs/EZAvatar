@@ -180,7 +180,7 @@ namespace EZAva2
                     if (mat.FindProperty("m_Name").stringValue == material.name)
                     {
                         index = y;
-                        break;
+                        return index;
                     }
                 }
             }

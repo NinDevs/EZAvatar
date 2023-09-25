@@ -1,4 +1,6 @@
-﻿using EZAva2;
+﻿#if UNITY_EDITOR
+
+using EZAva2;
 using System;
 using System.Linq;
 using UnityEditor;
@@ -333,18 +335,18 @@ public class UI
                                                        
                             if (blendCategories[i].blendShapeData.GUIData[y].selected[x])
                             {                                                                      
-                                if (!blendCategories[i].blendShapeData.values.Exists(b => b.name == blendshapeName)) {
+                                if (!blendCategories[i].blendShapeData.values.Exists(b => b.name == blendshapeName)) 
+                                {
                                     blendCategories[i].blendShapeData.values.Add(new BlendshapeValuePair() { name = blendshapeName, id = x, guidataid = y});
-                                    //Debug.Log($"Added {blendshapeName} to list of selected blendshapes! There is now {blendCategories[i].blendShapeData.values.Count} selected!");
                                 }  
 
                             }
                                 
                             else if (!blendCategories[i].blendShapeData.GUIData[y].selected[x])
                             {                                  
-                                if (blendCategories[i].blendShapeData.values.Exists(b => b.name == blendshapeName)) {
+                                if (blendCategories[i].blendShapeData.values.Exists(b => b.name == blendshapeName)) 
+                                {
                                     blendCategories[i].blendShapeData.values.Remove(blendCategories[i].blendShapeData.values.Where(b => b.name == blendshapeName).ToList()[0]);
-                                    //Debug.Log($"Removed {blendshapeName} to list of selected blendshapes! There is now {blendCategories[i].blendShapeData.values.Count} selected!");
                                 } 
                             }
                                 
@@ -397,3 +399,4 @@ public class UI
         blendCategories.Clear();
     }
 }
+#endif

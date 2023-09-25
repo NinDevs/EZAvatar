@@ -25,7 +25,7 @@ namespace EZAva2
             //Create parameters menu if it doesn't exist
             if (expressionParametersMenu == null) {
                 VRCUtil.CreateParametersMenu(ref expressionParametersMenu);
-            }
+            }          
 
             for (int i = 0; i < matCategories.Count; i++)
             {
@@ -35,23 +35,21 @@ namespace EZAva2
                 int clipcount = matCategories[i].animClips.Count;
                 AnimatorState[] states = new AnimatorState[clipcount];
 
-                int counter = matCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
-                int conditioncount = 0; //Variable for animator transition condition threshold values
-
                 if (!EZAvatar.ignorePreviousStates && matCategories[i].layerExists)
                     ControllerUtil.RemoveStates(ControllerUtil.GetLayerByName(ref controller, layername));
+                
+                int conditioncount = matCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
 
                 //Creates new layer in the animator, if it doesn't exist
                 if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
                 {
                     controller.AddLayer(layername);
+                    ControllerUtil.SetLayerWeight(controller, controller.layers.Last(), 1);
                     layersCompleted++;
                 }
                 //Retrieves the layer that has just been created
                 var layer = ControllerUtil.GetLayerByName(ref controller, layername);
                 matCategories[i].layer = layer;
-                //Sets the layer weight to 1
-                ControllerUtil.SetLayerWeight(controller, layer, 1);
                 var statemachine = layer.stateMachine;
 
                 for (int y = 0; y < clipcount; y++)
@@ -67,7 +65,7 @@ namespace EZAva2
                         }
 
                         if (expressionParametersMenu.FindParameter(parametername) == null)
-                            VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
+                            VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 1, parametername);
 
                         if (matCategories[i].states.Count() != 2)
                         {
@@ -105,14 +103,14 @@ namespace EZAva2
 
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
                         {
-                            states[y] = statemachine.AddState(statename, new Vector3(360, counter * 55));
+                            states[y] = statemachine.AddState(statename, new Vector3(360, conditioncount * 55));
                             statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
                             matCategories[i].states.Add(states[y]);
                             statesCompleted++;                               
                             var anyStateTransition = statemachine.AddAnyStateTransition(states[y]);
                             ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
-                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, counter, parametername);
-                            counter++;
+                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, conditioncount, parametername);
+                            conditioncount++;
                         } 
 
                     }                  
@@ -120,9 +118,6 @@ namespace EZAva2
                     //Add new states normally
                     else if (clipcount >= 1)
                     {                      
-                        //If we are adding states to an existing layer that already has states, set transition condition value variable to state count (ensures no overlapping values, int adds from where it left off in previous transitions)
-                        if (statemachine.states.Count() > 0 && y == 0)
-                            conditioncount = statemachine.states.Count();
                         //Only adds the parameter if it does not already exist 
                         if (ControllerUtil.GetParameterByName(controller, parametername) == null)
                             controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
@@ -175,12 +170,12 @@ namespace EZAva2
                 if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
                 {
                     controller.AddLayer(layername);
+                    ControllerUtil.SetLayerWeight(controller, controller.layers.Last(), 1);
                     layersCompleted++;
                 }
 
                 var layer = ControllerUtil.GetLayerByName(ref controller, layername);
                 objCategories[i].layer = layer;
-                ControllerUtil.SetLayerWeight(controller, layer, 1);
 
                 // ON/OFF regular bool toggles 
                 if (!objCategories[i].makeIdle)
@@ -194,7 +189,7 @@ namespace EZAva2
 
                     //Adds new parameter to expressions menu if missing
                     if (expressionParametersMenu.FindParameter(parametername) == null)
-                        VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 0, parametername);
+                        VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Bool, 1, parametername);
                     
                     for (int y = 0; y < clipcount; y++)
                     {
@@ -205,7 +200,7 @@ namespace EZAva2
                         statesCompleted++;
 
                         //When both states have been created
-                        if (states.Count() == 2 && y == clipcount - 1)
+                        if (y == clipcount - 1 && states.Count() == 2)
                         {
                             //Creates a transition that will start from the first state to the second state
                             layer.stateMachine.states[0].state.AddTransition(layer.stateMachine.states[1].state);
@@ -571,8 +566,9 @@ namespace EZAva2
                 if (Helper.DoesMenuExist(currentMenu.name, true) || Helper.DoesMenuExist(currentMenu.name, false))
                 {
                     currentMenu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)) != null ? (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)) : (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{currentMenu.name}.asset", typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu));
+                    var controlCount = currentMenu.controls.Count;
                     //Get latest nested menu
-                    while (currentMenu.controls.Last().subMenu != null)
+                    while (controlCount > 8)
                     {
                         currentMenu = currentMenu.controls.Last().subMenu;
                     }
@@ -651,16 +647,21 @@ namespace EZAva2
 
                 if (category[i].menuControl == ControlType.RadialPuppet)
                 {
-                    if (currentMain.controls.Where(x => x.name == toggleControlName && x.parameter.name == parameterName && x.type == VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet) == null)
-                    {
+                    if (!currentMain.controls.Exists(x => x.name == toggleControlName && x.parameter.name == parameterName && x.type == VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet))
+                    {                     
+                        var parameterRotation = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter[] { };
+                        parameterRotation[0] = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName };
+                        
                         currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
                             name = toggleControlName,
                             type = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet,
-                            parameter = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName },
-                            value = 0
+                            subParameters = parameterRotation,
+                            value = 0                 
                         });
                     }
+
+                    AssetDatabase.SaveAssets();
 
                     continue;
                 }
@@ -695,7 +696,7 @@ namespace EZAva2
                     continue;
                 }
 
-                else if (type == EZAvatar.CreationType.GameObject || type == EZAvatar.CreationType.Blendshape && ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
+                else if (type == EZAvatar.CreationType.GameObject && ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool || type == EZAvatar.CreationType.Blendshape && ControllerUtil.GetParameterByName(EZAvatar.controller, parameterName).type == AnimatorControllerParameterType.Bool)
                 {                  
                     currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                     {
@@ -728,7 +729,7 @@ namespace EZAva2
                         currentMenu.controls.Add(control);
                         
                         //If there are no more states to iterate through for this category, that means the menu is finished, and we should export it and add to the main menu.
-                        if (y == newStates.Count() - 1 && !currentMenu.name.Contains("More"))
+                        if (y == newStatesCount - 1 && !currentMenu.name.Contains("More"))
                         {
                             var maincontrol = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                             {
