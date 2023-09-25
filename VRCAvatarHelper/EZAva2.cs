@@ -93,7 +93,7 @@ namespace EZAva2
         public static bool disableMenuCreation = false;
         public static bool writeDefaults = true;
         
-        public static string Version = "v1.2.2";
+        public static string Version = "v1.2.3";
 
         public enum CreationType
         {

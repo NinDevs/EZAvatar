@@ -588,7 +588,7 @@ namespace EZAva2
                 creationstart:
 
                 //If the main menu reaches 8 control limit and there are more layers to go through, we create a new main menu to continue iterating
-                if (currentMain.controls.Count() == 8 && i + 1 <= categoryCount)
+                if (i + 1 <= categoryCount && currentMain.controls.Count() == 8)
                 {
                     var nextmain = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                     EditorUtility.SetDirty(nextmain);
@@ -649,8 +649,7 @@ namespace EZAva2
                 {
                     if (!currentMain.controls.Exists(x => x.name == toggleControlName && x.parameter.name == parameterName && x.type == VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.ControlType.RadialPuppet))
                     {                     
-                        var parameterRotation = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter[] { };
-                        parameterRotation[0] = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName };
+                        var parameterRotation = new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter[1] { new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control.Parameter() { name = parameterName }};
                         
                         currentMain.controls.Add(new VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control()
                         {
@@ -660,8 +659,6 @@ namespace EZAva2
                             value = 0                 
                         });
                     }
-
-                    AssetDatabase.SaveAssets();
 
                     continue;
                 }
@@ -692,7 +689,6 @@ namespace EZAva2
                         subMenu = currentMenu
                     });
               
-                    //Skip to next category
                     continue;
                 }
 
@@ -706,7 +702,6 @@ namespace EZAva2
                         value = 1
                     });
               
-                    //Skip to next category
                     continue;
                 }
                 
@@ -754,7 +749,7 @@ namespace EZAva2
                     }
 
                     //If we reach the end of the current menu and there are still more states to consider, create a new menu
-                    else if (currentMenu.controls.Count() == 8 && y + 1 <= newStates.Count())
+                    else if (y + 1 <= newStatesCount && currentMenu.controls.Count() == 8)
                     {
                         var nextMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu>();
                         var namecount = 0;
