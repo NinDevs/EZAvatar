@@ -70,7 +70,7 @@ namespace EZAva2
                         if (matCategories[i].states.Count() != 2)
                         {
                             states[y] = statemachine.AddState(statename, new Vector3(360, y * 55));
-                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
+                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].name);
                             statesCompleted++;
                             matCategories[i].states.Add(states[y]);
                         }
@@ -104,7 +104,7 @@ namespace EZAva2
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
                         {
                             states[y] = statemachine.AddState(statename, new Vector3(360, conditioncount * 55));
-                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
+                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].name);
                             matCategories[i].states.Add(states[y]);
                             statesCompleted++;                               
                             var anyStateTransition = statemachine.AddAnyStateTransition(states[y]);
@@ -129,7 +129,7 @@ namespace EZAva2
                         {
                             states[y] = statemachine.AddState(statename, new Vector3(360, conditioncount * 55));
                             //Set state motion to current anim clip
-                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].objects[0].name);
+                            statemachine.states.Where(x => x.state == states[y]).ToList()[0].state.motion = AnimUtil.LoadAnimClip(clips[y].name, matCategories[i].name);
                             statesCompleted++;
                             matCategories[i].states.Add(states[y]);
                             //Creates any state transition to each state
@@ -178,7 +178,7 @@ namespace EZAva2
                 objCategories[i].layer = layer;
 
                 // ON/OFF regular bool toggles 
-                if (!objCategories[i].makeIdle)
+                if (!objCategories[i].toggleObjSeparately)
                 {
                     //Adds bool parameter if there are only two anims we are working with
                     if (ControllerUtil.GetParameterByName(controller, parametername) == null)
@@ -227,84 +227,49 @@ namespace EZAva2
                 {                  
                     int paramCounter = objCategories[i].layerExists ? ControllerUtil.GetLayerByName(ref controller, layername).stateMachine.states.Count() : 0;
 
+                    if (ControllerUtil.GetParameterByName(controller, parametername) == null)
+                        controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
+
+                    if (expressionParametersMenu.FindParameter(parametername) == null)
+                        VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int, 0, parametername);
+
                     for (int y = 0; y < clipcount; y++)
                     {
                         var statename = clips[y].name;
-                        bool createdState = false;
-
-                        if (layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
-                        {                          
-                            var previousStateName = layer.stateMachine.states[0].state.name;
-                            var previousStateClip = layer.stateMachine.states[0].state.motion.name;
-                            ControllerUtil.RemoveStates(layer);
-
+                        
+                        if (objCategories[i].makeIdleState && layer.stateMachine.states.Count() == 0) {
                             states[y] = layer.stateMachine.AddState("Toggles Idle", new Vector3(360, 0));                           
                             objCategories[i].states.Add(states[y]);
-                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name);
-
-                            //Readd the state with the previous clip. This is just so that the default state is always the idle state, we delete the previous state and readd after idle state creation
-                            layer.stateMachine.AddState(previousStateName, new Vector3(360, 55));
-                            objCategories[i].states.Add(layer.stateMachine.states.Where(x => x.state.name == previousStateName).ToList()[0].state);
-                            layer.stateMachine.states[1].state.motion = AnimUtil.LoadAnimClip(previousStateClip, "Switched");
-
-                            ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);
-                            objCategories[i].switched = true;
-
-                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[0].state);
-                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
-                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, 0, parametername);
-                                               
-                            var anyStateTransition2 = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[1].state);
-                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition2, false, 0, false, 0);
-                            anyStateTransition2.AddCondition(AnimatorConditionMode.Equals, 1, parametername);
-                        
-                            paramCounter = 2;
-                            EditorUtility.SetDirty(layer.stateMachine);
-                        }
-
-                        if (ControllerUtil.GetParameterByName(controller, parametername) == null)
-                        {
-                            controller.AddParameter(parametername, AnimatorControllerParameterType.Int);
-                        }
-
-                        if (expressionParametersMenu.FindParameter(parametername) == null)
-                            VRCUtil.AddNewParameter(expressionParametersMenu, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType.Int, 0, parametername);
-
-                        //Creates idle state if it does not exist
-                        if (layer.stateMachine.states.Count() == 0)
-                        {
-                            states[y] = layer.stateMachine.AddState("Toggles Idle", new Vector3(31, -45));
-                            objCategories[i].states.Add(states[y]);
-                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name);
-                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[0].state);
-                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
-                            anyStateTransition.AddCondition(AnimatorConditionMode.Equals, 0, parametername);
+                            layer.stateMachine.states[0].state.motion = AnimUtil.LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name); 
+                            var anyStateTransitionToIdle = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[0].state);
+                            ControllerUtil.ApplyTransitionSettings(ref anyStateTransitionToIdle, false, 0, false, 0);
+                            anyStateTransitionToIdle.AddCondition(AnimatorConditionMode.Equals, 0, parametername);
                             paramCounter = 1;
+                        }
+
+                        if (layer.stateMachine.states.Count() >= 2 && ControllerUtil.GetParameterByName(controller, parametername).type == AnimatorControllerParameterType.Bool)
+                        {                                                                           
+                            ControllerUtil.ChangeParameterToInt(controller, layer, expressionParametersMenu, parametername);
+                            objCategories[i].switched = true;                                       
+                            paramCounter = layer.stateMachine.states.Count();
+                            EditorUtility.SetDirty(layer.stateMachine);                         
                         }
 
                         if (ControllerUtil.GetAnimatorStateInLayer(layer, statename) == null)
                         {
                             states[y] = layer.stateMachine.AddState(statename, new Vector3(360, paramCounter * 55));
-                            objCategories[i].states.Add(states[y]);
-                            statesCompleted++;
-                            createdState = true;
-                        }
-
-                        //When both states have been created
-                        if (layer.stateMachine.states.Count() >= 2 && createdState)
-                        {
+                            objCategories[i].states.Add(states[y]);  
                             //Creates a transition that will start from the idle state to the new state
-                            var statecount = layer.stateMachine.states.Count() - 1;
-                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[statecount].state);
+                            var anyStateTransition = layer.stateMachine.AddAnyStateTransition(layer.stateMachine.states[paramCounter].state);
                             ControllerUtil.ApplyTransitionSettings(ref anyStateTransition, false, 0, false, 0);
                             anyStateTransition.AddCondition(AnimatorConditionMode.Equals, paramCounter, parametername);
                             //Set new state motion to ON anim clip
-                            layer.stateMachine.states[statecount].state.motion = AnimUtil.LoadAnimClip(clips[y].name, objCategories[i].name) != null ?
+                            layer.stateMachine.states[paramCounter].state.motion = AnimUtil.LoadAnimClip(clips[y].name, objCategories[i].name) != null ?
                                 AnimUtil.LoadAnimClip(clips[y].name, objCategories[i].name) :
-                                AnimUtil.LoadAnimClip(clips[y].name, "Multi-Toggles");
-
+                                AnimUtil.LoadAnimClip(clips[y].name, "Multi-Toggles"); 
+                            
                             paramCounter++;
-                            createdState = false;
+                            statesCompleted++;
                         }
                     }              
                 }
@@ -332,12 +297,12 @@ namespace EZAva2
                 if (ControllerUtil.GetLayerByName(ref controller, layername) == null)
                 {
                     controller.AddLayer(layername);
+                    ControllerUtil.SetLayerWeight(controller, controller.layers.Last(), 1);
                     layersCompleted++;
                 }
                 var layer = ControllerUtil.GetLayerByName(ref controller, layername);
                 var statemachine = layer.stateMachine;
                 blendshapeCategory[i].layer = layer;
-                ControllerUtil.SetLayerWeight(controller, layer, 1);
 
                 if (blendshapeCategory[i].menuControl == ControlType.Toggle)
                 {

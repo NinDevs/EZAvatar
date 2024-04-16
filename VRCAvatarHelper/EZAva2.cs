@@ -31,14 +31,25 @@ namespace EZAva2
         public List<AnimationClip> animClips = new List<AnimationClip>();
         public AnimatorControllerLayer layer = null;
         public List<AnimatorState> states = new List<AnimatorState>();
+        public List<Subcategory> subcategories = new List<Subcategory>();
         public bool switched { get; set; }
-        public bool makeIdle { get; set; }
+        public bool toggleObjSeparately { get; set; }
+        public bool makeIdleState { get; set; }
         public bool layerExists { get; set; }
         public BlendshapeValueData blendShapeData { get; set; }
         public ControlType menuControl { get; set; }
         public MenuGenOption menuGenerationType { get; set; }
         public VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu menu { get; set; }
-    }    
+    }
+    
+    public class Subcategory
+    {
+        public string name;
+        public bool foldout;
+        public int slots { get; set; }
+        public Material[] materials;
+        public GameObject[] objects = new GameObject[1];
+    }
 }
   
     public class EZAvatar : EditorWindow
@@ -93,7 +104,7 @@ namespace EZAva2
         public static bool disableMenuCreation = false;
         public static bool writeDefaults = true;
         
-        public static string Version = "v1.2.3";
+        public static string Version = "v1.3.0";
 
         public enum CreationType
         {

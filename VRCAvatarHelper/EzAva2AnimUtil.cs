@@ -260,8 +260,33 @@ namespace EZAva2
                         keyframe[1].time = 1 / clip.frameRate;
                         AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframe);
 
+                        for (int y = 0; y < matCategories[i].subcategories.Count; y++)
+                        {
+                            if (matCategories[i].subcategories[y].materials[x] == null) continue;
+                            if (matCategories[i].subcategories[y].objects[0] == null) continue;
+                            var subMaterial = matCategories[i].subcategories[y].materials[x];                         
+                            EditorCurveBinding subCurveBinding = new EditorCurveBinding();
+                            
+                            var gameObj = matCategories[i].subcategories[y].objects[0];
+                            System.Type rendertype = null;
+                            var render = FetchRenderer(gameObj, ref rendertype);
+                            var path = rendertype == typeof(SkinnedMeshRenderer) ? ((SkinnedMeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1) : ((MeshRenderer)render).gameObject.transform.GetHierarchyPath().Substring(EZAvatar.avatar.name.Length + 1);                        
+                            subCurveBinding.path = path;
+                            subCurveBinding.propertyName = $"m_Materials.Array.data[{FindRendererMaterialIndex(ref render, materials)}]";
+                            subCurveBinding.type = rendertype;
+                            
+                            //Create curve for the same material index that the main category's anim corresponds to
+                            ObjectReferenceKeyframe[] subKeyframe = new ObjectReferenceKeyframe[2];
+                            subKeyframe[0].value = subMaterial;
+                            subKeyframe[0].time = 0;
+                            subKeyframe[1].value = subMaterial;
+                            subKeyframe[1].time = 1 / clip.frameRate;
+                            AnimationUtility.SetObjectReferenceCurve(clip, subCurveBinding, subKeyframe);
+                                                    
+                        }
+
                         matCategories[i].animClips.Add(clip);
-                        ExportClip(clip, matCategories[i].objects[0].name.Trim());
+                        ExportClip(clip, matCategories[i].name);
                     }
                 }
             }
@@ -283,7 +308,7 @@ namespace EZAva2
                 var onOffPath = "";
 
                 //If we are using any state transitions for objects toggles instead of on/off
-                if (objCategories[i].makeIdle)
+                if (objCategories[i].toggleObjSeparately)
                 {
                     var idleClip = File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Animations/{objCategories[i].name}/{objCategories[i].name}Idle.anim") ? LoadAnimClip($"{objCategories[i].name}Idle", objCategories[i].name) : null;
                     if (idleClip != null)

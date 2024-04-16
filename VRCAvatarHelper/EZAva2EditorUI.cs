@@ -96,6 +96,38 @@ public class UI
                     else
                         matCategories[i].materials[y] = (Material)EditorGUILayout.ObjectField($"Mat {y}", matCategories[i].materials[y], typeof(Material), false);
                 }
+               
+                //Subcategory UI display
+                for (int x = 0; x < matCategories[i].subcategories.Count; x++)
+                {
+                    EditorGUILayout.BeginVertical();                    
+                    matCategories[i].subcategories[x].foldout = EditorGUILayout.Foldout(matCategories[i].subcategories[x].foldout, matCategories[i].subcategories[x].name, true);                   
+
+                    if (matCategories[i].subcategories[x].foldout)
+                    {                                                                  
+                        matCategories[i].subcategories[x].objects[0] = (GameObject)EditorGUILayout.ObjectField("Mesh Object", matCategories[i].subcategories[x].objects[0], typeof(GameObject), true);
+                        if (matCategories[i].subcategories[x].objects[0] != null) matCategories[i].subcategories[x].name = matCategories[i].subcategories[x].objects[0].name;
+                        matCategories[i].subcategories[x].slots = matCategories[i].slots;
+
+                        for (int j = 0; j < matCategories[i].subcategories[x].slots; j++)
+                        {
+                            Array.Resize(ref matCategories[i].subcategories[x].materials, matCategories[i].slots);
+                            if (j == 0)
+                                matCategories[i].subcategories[x].materials[j] = (Material)EditorGUILayout.ObjectField("Default", matCategories[i].subcategories[x].materials[j], typeof(Material), false);
+                            else
+                                matCategories[i].subcategories[x].materials[j] = (Material)EditorGUILayout.ObjectField($"Mat {j}", matCategories[i].subcategories[x].materials[j], typeof(Material), false);
+                        }
+
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.FlexibleSpace();
+
+                        if (GUILayout.Button("Del", GUILayout.Width(40), GUILayout.Height(15)))
+                            matCategories[i].subcategories.Remove(matCategories[i].subcategories[x]);
+
+                        EditorGUILayout.EndHorizontal(); 
+                    }
+                    EditorGUILayout.EndVertical();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginHorizontal();
@@ -109,6 +141,9 @@ public class UI
                     if (GUILayout.Button("-", GUILayout.Width(35)))
                         matCategories[i].slots -= 1;
                 }
+
+                if (GUILayout.Button("+Sub", GUILayout.Width(42)))
+                    matCategories[i].subcategories.Add(new Subcategory());
 
                 if (GUILayout.Button("Del", GUILayout.Width(50)))
                     matCategories.Remove(matCategories[i]);
@@ -164,7 +199,7 @@ public class UI
                 if (Helper.DoesCategoryExistAndHaveStates(controller, ref objCategories[i].name) && !objCategories[i].layerExists)
                 {
                     objCategories[i].layerExists = true;
-                    objCategories[i].makeIdle = true;
+                    objCategories[i].toggleObjSeparately = true;
                     objCategories[i].slots = 1;
                 }
 
@@ -177,10 +212,17 @@ public class UI
 
                 EditorGUILayout.BeginVertical();
 
-                if (!objCategories[i].layerExists && objCategories[i].slots > 1)
-                    objCategories[i].makeIdle = GUILayout.Toggle(objCategories[i].makeIdle, "Toggle Objects Separately");
-                else if (!objCategories[i].layerExists && objCategories[i].slots <= 1)
-                    objCategories[i].makeIdle = false;
+                if (!objCategories[i].layerExists && objCategories[i].slots > 1) {
+                    objCategories[i].toggleObjSeparately = GUILayout.Toggle(objCategories[i].toggleObjSeparately, "Toggle Objects Separately");                
+                    if (objCategories[i].toggleObjSeparately)
+                        objCategories[i].makeIdleState = GUILayout.Toggle(objCategories[i].makeIdleState, "Make Default Idle State (All Objects Off By Default)");
+                }
+                
+                else if (!objCategories[i].layerExists && objCategories[i].slots <= 1) {
+                     objCategories[i].toggleObjSeparately = false;
+                     objCategories[i].makeIdleState = false;
+                }
+
 
                 if (!disableMenuCreation)
                 {
@@ -190,7 +232,7 @@ public class UI
                         objCategories[i].menu = (VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu)EditorGUILayout.ObjectField(objCategories[i].menu, typeof(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu), true);                      
                     EditorGUILayout.EndHorizontal();
                         
-                    if (objCategories[i].makeIdle || objCategories[i].layerExists)
+                    if (objCategories[i].toggleObjSeparately || objCategories[i].layerExists)
                         objCategories[i].menuControl = (ControlType)EditorGUILayout.EnumPopup("Menu Control", objCategories[i].menuControl);
                     else if (objCategories[i].menuControl == ControlType.RadialPuppet)
                         objCategories[i].menuControl = ControlType.Toggle;
