@@ -66,9 +66,11 @@ namespace EZAva2
         {
             //Creating a new editor window, and then shows it
             EZAvatar window = (EZAvatar)GetWindow(typeof(EZAvatar));
-            window.Show();
-            
+            window.Show();          
             Updater.CheckForUpdates(true);
+            #if UNITY_2019
+                debug = Helper.SetTextColor("It seems you are using <b>Unity 2019</b>. EZAvatar may not function properly on up to date VRChat Avatar SDK versions, as they are designed for Unity 2022 or higher. Consider migrating your project to Unity 2022 and ensuring you are using the correct script version by clicking <b>'Check for Updates'</b>.", "orange");
+            #endif
         }
         private static GameObject previousAvatar;
         private static GameObject back;
@@ -92,9 +94,9 @@ namespace EZAva2
         private bool GameObjFoldout;
         private bool blendshapeFoldout;
         private static Vector2 categoriesScrollView;
-        public static List<Category> objCategories = new List<Category>();
-        public static List<Category> matCategories = new List<Category>();
-        public static List<Category> blendCategories = new List<Category>();
+        public static List<Category> objCategories = new();
+        public static List<Category> matCategories = new();
+        public static List<Category> blendCategories = new();
         public static string debug;
         private bool settings = true;
         public static bool completeAnimatorLogic = true;
@@ -104,7 +106,7 @@ namespace EZAva2
         public static bool disableMenuCreation = false;
         public static bool writeDefaults = true;
         
-        public static string Version = "v1.3.0";
+        public static string Version = "v1.3.1";
 
         public enum CreationType
         {
@@ -158,12 +160,14 @@ namespace EZAva2
 
             if (GUILayout.Button("Run"))
             {
-
                 if (avatar != null && objCategories.Count + matCategories.Count + blendCategories.Count > 0)
                 {
                     var watch = System.Diagnostics.Stopwatch.StartNew();
 
                     AnimUtil.MakeAnimationClips(ref matCategories, ref objCategories, ref blendCategories);
+
+                    if (controller == null)
+                        Helper.AddFXLayer(avatar);
 
                     if (controller != null && completeAnimatorLogic) {
                         Algorithm.SetupMaterialToggles(ref matCategories);
