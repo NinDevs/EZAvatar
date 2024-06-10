@@ -5,9 +5,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.Animations;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using AnimatorController = UnityEditor.Animations.AnimatorController;
+
+#if UNITY_2022
+using Unity.VisualScripting;
+#endif
 
 namespace EZAva2
 {
@@ -61,14 +65,14 @@ namespace EZAva2
                 if (!hasToggleInName && layers[i]?.name == $"Toggle {categoryName}" || layers[i]?.name == categoryName && hasToggleInName)
                 {
                     if (layers[i]?.stateMachine.states.Length >= 2)
-                    {                      
+                    {
                         result = true;
                     }
                 }
             }
             /*If user inputs either the category name without "Toggle" in front or with, it will be recognized as an existing category regardless if it exists. (for gameobj categories)
             This function will trim off the "Toggle" at the beginning.*/
-            if (hasToggleInName && result == true) {categoryName = categoryName.Substring(7);}
+            if (hasToggleInName && result == true) { categoryName = categoryName.Substring(7); }
             return result;
         }
 
@@ -93,27 +97,6 @@ namespace EZAva2
 
             categoryNameText = "";
         }
-     
-        public string MaterialToGUID(Material mat)
-        {
-            var mGUID = "";
-            var mFileId = "";
-            bool success = AssetDatabase.TryGetGUIDAndLocalFileIdentifier(mat, out string GUID, out long fileId);
-
-            if (success)
-            {
-                mGUID = GUID;
-                mFileId = fileId.ToString();
-            }
-            else
-            {
-                Debug.Log($"Failed to fetch the GUID of material {mat.name}.");
-                return "";
-            }
-
-            var value = "fileID: " + $"{fileId}, guid: {GUID}, " + "type: 2";
-            return value;
-        }
 
         public static void DisplayCreationResults()
         {
@@ -129,14 +112,15 @@ namespace EZAva2
 
         public static bool HasFXLayer()
         {
+
             EZAvatar.controller = null;
-            
+
             if (EZAvatar.avatar?.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>()?.baseAnimationLayers.ToList().Where
                 (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController != null)
             {
                 EZAvatar.controller = EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().baseAnimationLayers.ToList().Where
-                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;                             
-                
+                (x => x.type == VRC.SDK3.Avatars.Components.VRCAvatarDescriptor.AnimLayerType.FX).ToList()[0].animatorController as AnimatorController;
+
                 if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
                     EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
 
@@ -145,7 +129,7 @@ namespace EZAva2
 
             if (EZAvatar.controller == null && EZAvatar.avatar != null)
             {
-                EZAvatar.debug = SetTextColor("There is no <b>FX Layer</b> on this avatar! FX Layer animator controller is required for this script!", "yellow");
+                EZAvatar.debug = SetTextColor("There is no <b>FX Layer</b> on this avatar! FX Layer animator controller is required for this script! An FX layer will attempt to be created upon execution, but the script is not guaranteed to work as intended.", "yellow");
                 Debug.Log("<color=yellow>[EZAvatar]</color>: There is no FX Layer on this avatar! FX Layer animator controller is required for this script!");
                 return false;
             }
@@ -165,11 +149,40 @@ namespace EZAva2
             return false;
         }
 
+        public static void AddFXLayer(GameObject avatar)
+        {
+            if (avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>() == null) return;
+
+            avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
+            avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customizeAnimationLayers = true;
+
+            AnimatorController newAnimator = new AnimatorController();
+            newAnimator.name = $"{avatar.name}FX";
+            Debug.Log($"<color=green>[EZAvatar]</color>: Missing FX layer, created FX layer at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newAnimator.name}.controller'");
+
+            if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{avatar.name}"))
+            {
+                Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{avatar.name}");
+            }
+            AssetDatabase.CreateAsset(newAnimator, $"Assets/Nin/EZAvatar/{avatar.name}/{newAnimator.name}.controller");
+            EZAvatar.controller = newAnimator;
+            
+            #if UNITY_2022_3_OR_NEWER
+            // Serialize VRCAvatarDescriptor and edit necessary values since assigning it via accessing fields doesn't work
+            SerializedObject o = new SerializedObject(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>());
+            var serializedFXLayer = o.FindProperty("baseAnimationLayers").GetArrayElementAtIndex(4);
+            serializedFXLayer.FindPropertyRelative("isDefault").boolValue = false;
+            serializedFXLayer.FindPropertyRelative("animatorController").objectReferenceValue = newAnimator.Serialize().objectReferences[0];
+            o.ApplyModifiedProperties();
+            EditorUtility.SetDirty(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>());
+            #endif
+        }
+
         public static bool DoesMenuExist(string menu, bool isSub)
         {
             if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/{menu}.asset") && !isSub)
                 return true;
-            
+
             else if (File.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}/Menus/Submenus/{menu}.asset") && isSub)
                 return true;
 
@@ -189,20 +202,20 @@ namespace EZAva2
             EditorGUIUtility.PingObject(folder);
         }
 
-        public static int FetchTotalBlendshapes(Category category) 
+        public static int FetchTotalBlendshapes(Category category)
         {
             int blendSCount = 0;
-            
-            foreach(var obj in category.objects)
+
+            foreach (var obj in category.objects)
             {
                 if (obj == null || obj.GetComponent<SkinnedMeshRenderer>() == null) continue;
                 blendSCount += obj.GetComponent<SkinnedMeshRenderer>().sharedMesh.blendShapeCount;
             }
-            
+
             return blendSCount;
         }
     }
-  
+
     public class VRCUtil
     {
         public static VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.Parameter AddNewParameter(VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters vrcExpressionParameters, VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters.ValueType valueType, float defaultValue, string name)
@@ -225,7 +238,7 @@ namespace EZAva2
             for (int i = 0; i < parameters.arraySize; i++)
             {
                 if (parameters.GetArrayElementAtIndex(i).name == parameterName)
-                    parameters.DeleteArrayElementAtIndex(i); 
+                    parameters.DeleteArrayElementAtIndex(i);
             }
             parameters_S.ApplyModifiedProperties();
         }
@@ -233,18 +246,36 @@ namespace EZAva2
         public static void CreateParametersMenu(ref VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters vrcExpressionParameters)
         {
             var newParametersMenu = ScriptableObject.CreateInstance<VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionParameters>();
-                newParametersMenu.name = $"{EZAvatar.avatar.name}Parameters";
-                if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
-                    Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
-                AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
-                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;              
-                vrcExpressionParameters = newParametersMenu;
-                EditorUtility.SetDirty(vrcExpressionParameters);
-                if (EZAvatar.enableUnityDebugLogs)
-                    Debug.Log($"<color=green>[EZAvatar]</color>: Missing parameters menu, created parameters menu  at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}'");
+            newParametersMenu.name = $"{EZAvatar.avatar.name}Parameters";
+            if (!Directory.Exists($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}"))
+                Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{EZAvatar.avatar.name}");
+            AssetDatabase.CreateAsset(newParametersMenu, $"Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}.asset");
+            EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().expressionParameters = newParametersMenu;
+            vrcExpressionParameters = newParametersMenu;
+            EditorUtility.SetDirty(vrcExpressionParameters);
+            if (EZAvatar.enableUnityDebugLogs)
+                Debug.Log($"<color=green>[EZAvatar]</color>: Missing parameters menu, created parameters menu  at 'Assets/Nin/EZAvatar/{EZAvatar.avatar.name}/{newParametersMenu.name}'");
+        }
+
+        public static string GetSDKVersion()
+        {
+            return VRCSDKJSON.FromJSON(File.ReadAllText("Packages/com.vrchat.avatars/package.json")).version.ToString();
         }
     }
 
+    public class VRCSDKJSON
+    {
+        public string name { get; set; }
+        public string displayName { get; set; }
+        public string version { get; set; }
+        public string unity { get; set; }
+        public string description { get; set; }
+
+        public static VRCSDKJSON FromJSON(string jsonString)
+        {
+            return JsonUtility.FromJson<VRCSDKJSON>(jsonString);
+        }
+    }
     public class BlendshapeGUIData
     {
         public bool[] selected = new bool[1];
@@ -264,7 +295,7 @@ namespace EZAva2
     {
         public List<BlendshapeValuePair> values = new List<BlendshapeValuePair>();
         public List<BlendshapeGUIData> GUIData = new List<BlendshapeGUIData>();
-    } 
+    }
 }
 
 #endif
