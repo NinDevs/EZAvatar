@@ -69,8 +69,7 @@ namespace EZAva2
             window.Show();          
             Updater.CheckForUpdates(true);
             #if UNITY_2019
-                if (debug == $"<color=#1bfa53>EZAvatar is up to date!</color>") // Display warning only if no script update is available
-                    debug = Helper.SetTextColor("It seems you are using <b>Unity 2019</b>. EZAvatar may not function properly on up to date VRChat Avatar SDK versions, as they are designed for Unity 2022 or higher. Consider migrating your project to Unity 2022 and ensuring you are using the correct script version by clicking <b>'Check for Updates'</b>.", "orange");
+                debug = Helper.SetTextColor("It seems you are using <b>Unity 2019</b>. EZAvatar may not function properly on dated Unity versions. Consider migrating your project to latest VRChat recommended Unity version and ensuring you are using an up to date script version by clicking <b>'Check for Updates'</b>.", "orange");
             #endif
         }
         private static GameObject previousAvatar;
@@ -107,7 +106,7 @@ namespace EZAva2
         public static bool disableMenuCreation = false;
         public static bool writeDefaults = true;
         
-        public static string Version = "v1.3.1";
+        public static string Version = "v1.3.2";
 
         public enum CreationType
         {

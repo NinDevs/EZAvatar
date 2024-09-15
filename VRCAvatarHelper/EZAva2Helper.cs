@@ -9,10 +9,6 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 using AnimatorController = UnityEditor.Animations.AnimatorController;
 
-#if UNITY_2022
-using Unity.VisualScripting;
-#endif
-
 namespace EZAva2
 {
     public class Helper
@@ -124,12 +120,14 @@ namespace EZAva2
                 if (EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions != true)
                     EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customExpressions = true;
 
+                EZAvatar.avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>().customizeAnimationLayers = true;
+
                 EditorUtility.SetDirty(EZAvatar.controller);
             }
 
             if (EZAvatar.controller == null && EZAvatar.avatar != null)
             {
-                EZAvatar.debug = SetTextColor("There is no <b>FX Layer</b> on this avatar! FX Layer animator controller is required for this script! An FX layer will attempt to be created upon execution, but the script is not guaranteed to work as intended.", "yellow");
+                EZAvatar.debug = SetTextColor("There is no <b>FX Layer</b> on this avatar! An FX layer will attempt to be created upon execution, but the script is not guaranteed to work as intended.", "yellow");
                 Debug.Log("<color=yellow>[EZAvatar]</color>: There is no FX Layer on this avatar! FX Layer animator controller is required for this script!");
                 return false;
             }
@@ -165,17 +163,16 @@ namespace EZAva2
                 Directory.CreateDirectory($"{Application.dataPath}/Nin/EZAvatar/{avatar.name}");
             }
             AssetDatabase.CreateAsset(newAnimator, $"Assets/Nin/EZAvatar/{avatar.name}/{newAnimator.name}.controller");
-            EZAvatar.controller = newAnimator;
+            EZAvatar.controller = (AnimatorController)AssetDatabase.LoadAssetAtPath($"Assets/Nin/EZAvatar/{avatar.name}/{newAnimator.name}.controller", typeof(AnimatorController));
             
-            #if UNITY_2022_3_OR_NEWER
             // Serialize VRCAvatarDescriptor and edit necessary values since assigning it via accessing fields doesn't work
             SerializedObject o = new SerializedObject(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>());
             var serializedFXLayer = o.FindProperty("baseAnimationLayers").GetArrayElementAtIndex(4);
             serializedFXLayer.FindPropertyRelative("isDefault").boolValue = false;
-            serializedFXLayer.FindPropertyRelative("animatorController").objectReferenceValue = newAnimator.Serialize().objectReferences[0];
+            var animatorRefValue = new SerializedObject(EZAvatar.controller).targetObject;
+            serializedFXLayer.FindPropertyRelative("animatorController").objectReferenceValue = animatorRefValue;
             o.ApplyModifiedProperties();
             EditorUtility.SetDirty(avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>());
-            #endif
         }
 
         public static bool DoesMenuExist(string menu, bool isSub)
